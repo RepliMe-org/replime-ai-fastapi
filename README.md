@@ -18,4 +18,10 @@ $ conda create -n replime python=3.11 -y
 $ conda activate replime
 ```
 
+## Installation
 
+### Install the required packages
+
+```bash
+$ pip install -r requirements.txt
+```
