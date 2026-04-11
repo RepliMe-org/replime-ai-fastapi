@@ -13,3 +13,18 @@ class ChunkingError(Exception):
     pass
 
 
+class EmbeddingError(Exception):
+    """Failed to load or run the embedding model."""
+    pass
+
+
+class VectorStoreConnectionError(Exception):
+    """Failed to connect to the ChromaDB vector store."""
+    pass
+
+
+class IngestionError(Exception):
+    """Failed to store chunks into the vector store."""
+    pass
+
+
