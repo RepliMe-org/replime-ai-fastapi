@@ -28,3 +28,6 @@ class IngestionError(Exception):
     pass
 
 
+class RetrievalError(Exception):
+    """Failed to retrieve chunks from the vector store."""
+    pass
