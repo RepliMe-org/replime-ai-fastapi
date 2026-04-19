@@ -213,3 +213,5 @@ chroma_db/
 
 # Zed
 .zed/
+
+.vscode/
