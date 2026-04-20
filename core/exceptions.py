@@ -1,33 +1,38 @@
-class TranscriptNotFoundError(Exception):
-    """YouTube video has no captions/transcript."""
-    pass
+class AppError(Exception):
+    message: str
+    code: str
+    status_code: int = 500
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
 
 
-class EmptyTranscriptError(Exception):
-    """Transcript was loaded but came back empty."""
-    pass
+class ServiceAuthError(AppError):
+    code = "UNAUTHORIZED"
+    status_code = 401
 
 
-class ChunkingError(Exception):
-    """Failed to split transcript into chunks."""
-    pass
+class TranscriptError(AppError):
+    code = "TRANSCRIPT_FAILED"
+    status_code = 422
 
 
-class EmbeddingError(Exception):
-    """Failed to load or run the embedding model."""
-    pass
+class VectorStoreError(AppError):
+    code = "VECTOR_STORE_ERROR"
+    status_code = 503
 
 
-class VectorStoreConnectionError(Exception):
-    """Failed to connect to the ChromaDB vector store."""
-    pass
+class LLMError(AppError):
+    code = "LLM_ERROR"
+    status_code = 503
 
 
-class IngestionError(Exception):
-    """Failed to store chunks into the vector store."""
-    pass
-
-
-class RetrievalError(Exception):
-    """Failed to retrieve chunks from the vector store."""
-    pass
+# Aliases for backwards compatibility with existing callers
+TranscriptNotFoundError = TranscriptError
+EmptyTranscriptError = TranscriptError
+ChunkingError = TranscriptError
+EmbeddingError = LLMError
+VectorStoreConnectionError = VectorStoreError
+RetrievalError = VectorStoreError
+IngestionError = VectorStoreError
