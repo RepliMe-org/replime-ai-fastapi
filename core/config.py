@@ -1,9 +1,11 @@
 import os
 from typing import Optional
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+
     # Application settings
     APP_NAME: str = "Replime AI FastAPI"
     APP_VERSION: str = "0.1.0"
@@ -21,10 +23,6 @@ class Settings(BaseSettings):
 
     # HuggingFace (optional — set in .env for faster downloads)
     HF_TOKEN: Optional[str] = None
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
     def validate_internal_token(self) -> None:
         """Warn if INTERNAL_TOKEN is not set in production."""
