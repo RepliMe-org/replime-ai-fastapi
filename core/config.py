@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     CHROMA_PORT: int = 8001
 
     # Embedding model settings
-    EMBEDDING_MODEL_ID: str = "sentence-transformers/all-MiniLM-L6-v2"
+    EMBEDDING_MODEL_ID: str = "paraphrase-multilingual-MiniLM-L12-v2"
     CACHE_DIR: str = ".cache/models"
 
     # HuggingFace (optional — set in .env for faster downloads)
