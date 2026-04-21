@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     # ChromaDB connection settings
     CHROMA_HOST: str = "localhost"
     CHROMA_PORT: int = 8001
+    CHROMA_PATH: str = ".chroma"
 
     # Embedding model settings
     EMBEDDING_MODEL_ID: str = "paraphrase-multilingual-MiniLM-L12-v2"
