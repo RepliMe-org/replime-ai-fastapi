@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     # HuggingFace (optional — set in .env for faster downloads)
     HF_TOKEN: Optional[str] = None
 
+    # Groq LLM settings
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.1-8b-instant"
+
     def validate_internal_token(self) -> None:
         """Warn if INTERNAL_TOKEN is not set in production."""
         if not self.INTERNAL_TOKEN:
