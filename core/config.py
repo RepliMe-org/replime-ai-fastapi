@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.1-8b-instant"
 
+    # Spring Boot backend
+    SPRING_BOOT_BASE_URL: str = "http://localhost:8080"
+
     def validate_internal_token(self) -> None:
         """Warn if INTERNAL_TOKEN is not set in production."""
         if not self.INTERNAL_TOKEN:

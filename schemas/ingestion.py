@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class IndexVideoRequest(BaseModel):
     chatbot_id: str
     youtube_video_id: str
+    video_title: str | None = None
 
 
 class IndexVideoResponse(BaseModel):
