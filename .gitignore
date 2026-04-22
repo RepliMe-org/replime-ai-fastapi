@@ -215,3 +215,5 @@ chroma_db/
 .zed/
 
 .vscode/
+
+.claude/
