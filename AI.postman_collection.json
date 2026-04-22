@@ -1,0 +1,292 @@
+{
+  "info": {
+    "_postman_id": "2db2867d-b44d-44ea-a8f2-4c6974df62eb",
+    "name": "AI",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "40585335"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Internal-Token",
+            "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{api}}/health",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Internal-Token",
+                "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{api}}/health",
+              "host": [
+                "{{api}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 22 Apr 2026 15:56:46 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "78"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"status\": \"ok\",\n    \"service\": \"ai-fastapi\",\n    \"components\": {\n        \"chroma\": {\n            \"status\": \"ok\"\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Ingest Video",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Internal-Token",
+            "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"chatbot_id\": \"test-bot-2\",\r\n  \"youtube_video_id\": \"vyISuWUWcFs\",\r\n  \"video_title\": \"Test Video 2\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api}}/internal/videos/test-video-1/index",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "internal",
+            "videos",
+            "test-video-1",
+            "index"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-Token",
+                "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"chatbot_id\": \"test-bot-1\",\r\n  \"youtube_video_id\": \"vyISuWUWcFs\",\r\n  \"video_title\": \"Test Video 1\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{api}}/internal/videos/test-video-1/index",
+              "host": [
+                "{{api}}"
+              ],
+              "path": [
+                "internal",
+                "videos",
+                "test-video-1",
+                "index"
+              ]
+            }
+          },
+          "status": "Accepted",
+          "code": 202,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 22 Apr 2026 15:42:37 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "47"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"status\": \"accepted\",\n    \"video_id\": \"test-video-1\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Delete video",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "X-Internal-Token",
+            "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"chatbot_id\": \"test-bot-2\",\r\n  \"youtube_video_id\": \"vyISuWUWcFs\",\r\n  \"video_title\": \"Test Video 2\"\r\n}\r\n"
+        },
+        "url": {
+          "raw": "{{api}}/internal/videos/test-video-1",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "internal",
+            "videos",
+            "test-video-1"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Internal-Token",
+                "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"chatbot_id\": \"test-bot-1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{api}}/internal/videos/test-video-1",
+              "host": [
+                "{{api}}"
+              ],
+              "path": [
+                "internal",
+                "videos",
+                "test-video-1"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 22 Apr 2026 15:56:15 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "46"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"video_id\": \"test-video-1\",\n    \"deleted_chunks\": 6\n}"
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "api",
+      "value": ""
+    },
+    {
+      "key": "internal_token",
+      "value": ""
+    }
+  ]
+}
