@@ -35,7 +35,7 @@ class VectorStore:
         video_title: str,
         chunks: list[str],
         embeddings: list[list[float]],
-        timestamps: list[int],
+        timestamps: list[int | None],
     ) -> None:
         try:
             collection = self._get_collection(chatbot_id)
@@ -45,7 +45,7 @@ class VectorStore:
                     "video_id": video_id,
                     "youtube_video_id": youtube_video_id,
                     "video_title": video_title,
-                    "timestamp_seconds": timestamps[i],
+                    "timestamp_seconds": timestamps[i] if timestamps[i] is not None else -1,
                 }
                 for i in range(len(chunks))
             ]

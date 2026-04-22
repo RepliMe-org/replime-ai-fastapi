@@ -42,7 +42,7 @@ class Source(BaseModel):
     video_title: str
     chunk_text: str
     youtube_url: str
-    timestamp_seconds: int
+    timestamp_seconds: int | None
     similarity_score: float
 
 
