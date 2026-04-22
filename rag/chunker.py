@@ -1,6 +1,7 @@
 import bisect
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from core.exceptions import TranscriptError
 
 
 # 1600 chars ≈ 400 tokens at the rough 4 chars/token rule
@@ -28,6 +29,9 @@ def chunk_transcript(
         cursor += len(seg["text"]) + 1
 
     full_text = " ".join(parts)
+
+    if not full_text.strip():
+        raise TranscriptError("Transcript text is empty — cannot chunk")
 
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,

@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 
 def load_transcript(youtube_video_id: str) -> list[dict]:
     try:
-        segments = YouTubeTranscriptApi.get_transcript(
+        segments = YouTubeTranscriptApi().fetch(
             youtube_video_id, languages=["en", "ar"]
         )
-        result = [{"text": s["text"], "start": s["start"]} for s in segments]
+        result = [{"text": s.text, "start": s.start} for s in segments]
         logger.info("Loaded transcript via youtube_transcript_api", extra={"youtube_video_id": youtube_video_id})
         return result
     except (TranscriptsDisabled, NoTranscriptFound):
