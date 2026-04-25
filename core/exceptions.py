@@ -23,6 +23,11 @@ class VectorStoreError(AppError):
     status_code = 503
 
 
+class InvalidRequestError(AppError):
+    code = "INVALID_REQUEST"
+    status_code = 422
+
+
 class LLMError(AppError):
     code = "LLM_ERROR"
     status_code = 503

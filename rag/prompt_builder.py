@@ -1,15 +1,14 @@
+from core.exceptions import InvalidRequestError
 from schemas.chat import ChatbotConfig, ConversationMessage
 
-
-def _seconds_to_mmss(seconds: int) -> str:
-    return f"{seconds // 60:02d}:{seconds % 60:02d}"
+_ROLE_MAP = {"USER": "user", "BOT": "assistant"}
 
 
 def _format_chunks(chunks: list[dict]) -> str:
     parts = []
     for i, chunk in enumerate(chunks, start=1):
         timestamp = chunk.get("timestamp_seconds")
-        mmss = _seconds_to_mmss(timestamp) if timestamp is not None else "00:00"
+        mmss = f"{timestamp // 60:02d}:{timestamp % 60:02d}" if timestamp is not None else "00:00"
         t_param = f"&t={timestamp}s" if timestamp is not None else ""
         parts.append(
             f"[Source {i}] {chunk['video_title']} @ {mmss}\n"
@@ -19,40 +18,38 @@ def _format_chunks(chunks: list[dict]) -> str:
     return "\n---\n".join(parts)
 
 
-def _format_history(history: list[ConversationMessage], max_turns: int) -> str:
-    recent = history[-max_turns:]
-    lines = []
-    for msg in recent:
-        label = "USER" if msg.role == "USER" else "BOT"
-        lines.append(f"{label}: {msg.content}")
-    return "\n".join(lines)
-
-
 def build_prompt(
     query: str,
     chunks: list[dict],
     history: list[ConversationMessage],
     config: ChatbotConfig,
-) -> str:
-    formatted_history = _format_history(history, config.max_context_turns)
-    formatted_chunks = _format_chunks(chunks)
+) -> list[dict]:
     keywords = ", ".join(config.persona_keywords)
+    formatted_chunks = _format_chunks(chunks)
 
-    return (
+    system_content = (
         f"You are {config.chatbot_name}.\n"
         f"{config.persona_description}\n"
         f"Tone: {config.tone}. Style: {config.response_length}.\n"
         f"Keywords: {keywords}\n"
-        f"\n--- CONVERSATION HISTORY ---\n"
-        f"{formatted_history}\n"
         f"\n--- RELEVANT VIDEO CONTENT ---\n"
         f"{formatted_chunks}\n"
-        f"\n--- USER QUESTION ---\n"
-        f"{query}\n"
         f"\n--- INSTRUCTIONS ---\n"
         f"1. Answer ONLY from the video content above.\n"
-        f"2. If no relevant content, say: \"I don't have information about that in {config.chatbot_name}'s content.\"\n"
-        f"3. Keep your {config.tone} tone throughout.\n"
-        f"4. Include YouTube links with timestamps when referencing content.\n"
-        f"5. Never invent information not in the excerpts."
+        f"2. Keep your {config.tone} tone throughout.\n"
+        f"3. Include YouTube links with timestamps when referencing content.\n"
+        f"4. Never invent information not in the excerpts."
     )
+
+    messages: list[dict] = [{"role": "system", "content": system_content}]
+
+    recent_history = history[-config.max_context_turns:]
+    for msg in recent_history:
+        role = _ROLE_MAP.get(msg.role)
+        if role is None:
+            raise InvalidRequestError(f"Unknown role: {msg.role!r}")
+        messages.append({"role": role, "content": msg.content})
+
+    messages.append({"role": "user", "content": query})
+
+    return messages

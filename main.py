@@ -40,4 +40,3 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 app.include_router(api_router)
 
-# TODO: app.include_router(chat_router, prefix="/chat", tags=["chat"])
