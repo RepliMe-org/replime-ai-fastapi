@@ -54,7 +54,6 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
 
     sources = [
         Source(
-            video_id=chunk["video_id"],
             video_title=chunk["video_title"],
             chunk_text=chunk["chunk_text"],
             youtube_url=(

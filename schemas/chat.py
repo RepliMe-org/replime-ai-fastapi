@@ -38,7 +38,6 @@ class ChatProcessRequest(BaseModel):
 
 
 class Source(BaseModel):
-    video_id: str
     video_title: str
     chunk_text: str
     youtube_url: str
