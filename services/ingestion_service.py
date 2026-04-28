@@ -16,7 +16,11 @@ async def send_callback(callback: VideoIndexedCallback) -> None:
     url = f"{settings.SPRING_BOOT_BASE_URL}/internal/update-video-status/{callback.youtube_video_id}"
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.patch(url, json={"status": callback.status, "error": callback.error})
+            response = await client.patch(
+                url,
+                json={"status": callback.status, "error": callback.error},
+                headers={"X-Internal-Token": settings.INTERNAL_TOKEN},
+            )
             response.raise_for_status()
     except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
         logger.exception(
