@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     GROQ_MODEL: str = "llama-3.1-8b-instant"
 
     # Spring Boot backend
-    SPRING_BOOT_BASE_URL: str = "http://localhost:8080"
+    SPRING_BOOT_BASE_URL: str = "http://localhost:8080/api/v1"
 
     def validate_internal_token(self) -> None:
         """Warn if INTERNAL_TOKEN is not set in production."""
