@@ -5,21 +5,22 @@ The AI backend for the Replime project. Built with FastAPI, it handles YouTube v
 ## Architecture Overview
 
 ```
-routes/          API route handlers (health, ingestion)
-services/        Business logic (ingestion pipeline)
-rag/             RAG components: chunker, embedder, retriever, LLM client, prompt builder
+routes/          API route handlers (health, ingestion, chat)
+services/        Business logic (ingestion pipeline, chat/RAG pipeline)
+rag/             RAG components: chunker, embedder, LLM client, prompt builder, query rewriter
 schemas/         Pydantic request/response models
 core/            Config, dependencies, exceptions, logging
 ```
 
-The ingestion flow: YouTube transcript → chunked → embedded (HuggingFace) → stored in ChromaDB.
+**Ingestion flow:** YouTube transcript → chunked → embedded (sentence-transformers) → stored in ChromaDB → callback sent to Spring Boot.
+
+**Chat flow:** query → rewritten → embedded → retrieved from ChromaDB → prompt built → LLM generates answer → sources returned.
 
 ## Requirements
 
 - Python 3.11+
-- A running **ChromaDB** instance (default: `localhost:8001`)
 - A **Groq API key** (for LLM inference)
-- A **Hugging Face token** (for embedding model downloads)
+- A **Hugging Face token** (optional, for faster model downloads)
 
 ## Setup
 
@@ -57,24 +58,15 @@ Edit `.env` and fill in your values:
 |---|---|
 | `APP_NAME` | Application name (default: `Replime AI FastAPI`) |
 | `APP_VERSION` | Application version |
-| `CHROMA_HOST` | ChromaDB host (default: `localhost`) |
-| `CHROMA_PORT` | ChromaDB port (default: `8001`) |
-| `EMBEDDING_MODEL_ID` | HuggingFace sentence-transformer model ID |
-| `HF_TOKEN` | HuggingFace API token (for model access) |
-| `INTERNAL_TOKEN` | Shared secret used by the Spring Boot backend to authenticate requests |
+| `CHROMA_PATH` | ChromaDB persistent storage path (default: `.chroma`) |
+| `EMBEDDING_MODEL_ID` | Sentence-transformer model ID |
+| `HF_TOKEN` | HuggingFace API token (optional) |
+| `INTERNAL_TOKEN` | Shared secret used by Spring Boot to authenticate requests |
 | `GROQ_API_KEY` | Groq API key for LLM inference |
 | `GROQ_MODEL` | Groq model name (e.g. `llama-3.1-8b-instant`) |
 | `SPRING_BOOT_BASE_URL` | Base URL of the Spring Boot backend (e.g. `http://localhost:8080`) |
 
-### 4. Start ChromaDB
-
-ChromaDB must be running before starting this service.Run it directly:
-
-```bash
-chroma run --port 8001
-```
-
-## Run the Server (in another terminal)
+### 4. Run the server
 
 ```bash
 python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -86,30 +78,47 @@ Interactive docs: `http://localhost:8000/docs`
 
 ## API Endpoints
 
-All endpoints require the `Authorization: Bearer <INTERNAL_TOKEN>` header.
+All endpoints require the `X-Internal-Token: <INTERNAL_TOKEN>` header.
+
+All paths are prefixed with `/ai` (e.g. `GET /ai/health`).
 
 ### Health Check
 
 ```
-GET /health
+GET /ai/health
 ```
 
 Returns service status and ChromaDB connectivity.
 
-### Video Ingestion
+**Response:**
+```json
+{
+  "status": "ok",
+  "service": "ai-fastapi",
+  "components": {
+    "chroma": { "status": "ok" }
+  }
+}
+```
+
+### Ingest Videos
 
 ```
-POST /internal/videos/{video_id}/index
+POST /ai/ingest/videos
 ```
 
-Triggers background ingestion of a YouTube video's transcript into the vector store.
+Queues background ingestion of one or more YouTube videos into the vector store. Returns immediately with `202 Accepted`. A callback is sent to Spring Boot per video when ingestion completes.
 
 **Request body:**
 ```json
 {
-  "chatbot_id": "string",
-  "youtube_video_id": "string",
-  "video_title": "string"
+  "chatbot_id": "chatbot-001",
+  "videos": [
+    {
+      "youtube_video_id": "dQw4w9WgXcQ",
+      "video_title": "How I grew to 1M subscribers"
+    }
+  ]
 }
 ```
 
@@ -117,14 +126,15 @@ Triggers background ingestion of a YouTube video's transcript into the vector st
 ```json
 {
   "status": "accepted",
-  "video_id": "string"
+  "chatbot_id": "chatbot-001",
+  "total": 1
 }
 ```
 
 ### Delete Video
 
 ```
-DELETE /internal/videos/{video_id}
+DELETE /ai/delete/video
 ```
 
 Removes all vector chunks for a video from the store.
@@ -132,7 +142,64 @@ Removes all vector chunks for a video from the store.
 **Request body:**
 ```json
 {
-  "chatbot_id": "string"
+  "chatbot_id": "chatbot-001",
+  "youtube_video_id": "dQw4w9WgXcQ"
+}
+```
+
+**Response:**
+```json
+{
+  "youtube_video_id": "dQw4w9WgXcQ",
+  "deleted_chunks": 6
+}
+```
+
+### Chat
+
+```
+POST /ai/chat/process
+```
+
+Runs the full RAG pipeline for a user query and returns an answer with sources.
+
+**Request body:**
+```json
+{
+  "session_id": "session-001",
+  "chatbot_id": "chatbot-001",
+  "query": "What did the speaker say about consistency?",
+  "language": "en",
+  "conversation_history": [],
+  "config": {
+    "chatbot_name": "Music Bot",
+    "persona_description": "An expert on music videos and lyrics",
+    "persona_keywords": ["music", "lyrics", "artist"],
+    "tone": "informative",
+    "response_length": "detailed",
+    "top_k": 10,
+    "similarity_threshold": 0.3,
+    "max_context_turns": 10
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "answer": "The speaker emphasized...",
+  "sources": [
+    {
+      "video_title": "How I grew to 1M subscribers",
+      "chunk_text": "...",
+      "youtube_url": "https://youtube.com/watch?v=dQw4w9WgXcQ&t=90s",
+      "timestamp_seconds": 90,
+      "similarity_score": 0.92
+    }
+  ],
+  "retrieval_ms": 45,
+  "llm_ms": 820,
+  "rewritten_query": "What did the speaker say about consistency?"
 }
 ```
 
@@ -144,4 +211,4 @@ pytest
 
 ## Postman Collection
 
-Import `AI.postman_collection.json` into Postman to test all endpoints. Set the `base_url` and `internal_token` collection variables before sending requests.
+Import `AI.postman_collection.json` into Postman to test all endpoints. Set the `api` collection variable to `http://localhost:8000/ai` and add your `X-Internal-Token` header value before sending requests.

@@ -88,7 +88,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"chatbot_id\": \"test-bot-2\",\r\n  \"youtube_video_id\": \"vyISuWUWcFs\",\r\n  \"video_title\": \"Test Video 2\"\r\n}\r\n",
+          "raw": "{\r\n  \"chatbot_id\": \"chatbot-001\",\r\n  \"videos\": [\r\n    {\r\n      \"youtube_video_id\": \"dQw4w9WgXcQ\",\r\n      \"video_title\": \"How I grew to 1M subscribers\"\r\n    }\r\n  ]\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -96,15 +96,13 @@
           }
         },
         "url": {
-          "raw": "{{api}}/internal/videos/test-video-1/index",
+          "raw": "{{api}}/ingest/videos",
           "host": [
             "{{api}}"
           ],
           "path": [
-            "internal",
-            "videos",
-            "test-video-1",
-            "index"
+            "ingest",
+            "videos"
           ]
         }
       },
@@ -122,7 +120,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"chatbot_id\": \"test-bot-1\",\r\n  \"youtube_video_id\": \"vyISuWUWcFs\",\r\n  \"video_title\": \"Test Video 1\"\r\n}\r\n",
+              "raw": "{\r\n  \"chatbot_id\": \"chatbot-001\",\r\n  \"videos\": [\r\n    {\r\n      \"youtube_video_id\": \"dQw4w9WgXcQ\",\r\n      \"video_title\": \"How I grew to 1M subscribers\"\r\n    }\r\n  ]\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -130,15 +128,13 @@
               }
             },
             "url": {
-              "raw": "{{api}}/internal/videos/test-video-1/index",
+              "raw": "{{api}}/ingest/videos",
               "host": [
                 "{{api}}"
               ],
               "path": [
-                "internal",
-                "videos",
-                "test-video-1",
-                "index"
+                "ingest",
+                "videos"
               ]
             }
           },
@@ -148,7 +144,7 @@
           "header": [
             {
               "key": "date",
-              "value": "Wed, 22 Apr 2026 15:42:37 GMT"
+              "value": "Tue, 28 Apr 2026 11:36:16 GMT"
             },
             {
               "key": "server",
@@ -156,7 +152,7 @@
             },
             {
               "key": "content-length",
-              "value": "47"
+              "value": "58"
             },
             {
               "key": "content-type",
@@ -164,12 +160,15 @@
             }
           ],
           "cookie": [],
-          "body": "{\n    \"status\": \"accepted\",\n    \"video_id\": \"test-video-1\"\n}"
+          "body": "{\n    \"status\": \"ACCEPTED\",\n    \"chatbot_id\": \"chatbot-001\",\n    \"total\": 1\n}"
         }
       ]
     },
     {
       "name": "Delete video",
+      "protocolProfileBehavior": {
+        "disabledSystemHeaders": {}
+      },
       "request": {
         "method": "DELETE",
         "header": [
@@ -181,17 +180,21 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"chatbot_id\": \"test-bot-2\",\r\n  \"youtube_video_id\": \"vyISuWUWcFs\",\r\n  \"video_title\": \"Test Video 2\"\r\n}\r\n"
+          "raw": "{\r\n  \"chatbot_id\": \"chatbot-001\",\r\n  \"youtube_video_id\": \"dQw4w9WgXcQ\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
         "url": {
-          "raw": "{{api}}/internal/videos/test-video-1",
+          "raw": "{{api}}/delete/video",
           "host": [
             "{{api}}"
           ],
           "path": [
-            "internal",
-            "videos",
-            "test-video-1"
+            "delete",
+            "video"
           ]
         }
       },
@@ -209,7 +212,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"chatbot_id\": \"test-bot-1\"\r\n}",
+              "raw": "{\r\n  \"chatbot_id\": \"chatbot-001\",\r\n  \"youtube_video_id\": \"dQw4w9WgXcQ\"\r\n}\r\n",
               "options": {
                 "raw": {
                   "language": "json"
@@ -217,14 +220,13 @@
               }
             },
             "url": {
-              "raw": "{{api}}/internal/videos/test-video-1",
+              "raw": "{{api}}/delete/video",
               "host": [
                 "{{api}}"
               ],
               "path": [
-                "internal",
-                "videos",
-                "test-video-1"
+                "delete",
+                "video"
               ]
             }
           },
@@ -234,7 +236,7 @@
           "header": [
             {
               "key": "date",
-              "value": "Wed, 22 Apr 2026 15:56:15 GMT"
+              "value": "Tue, 28 Apr 2026 11:35:53 GMT"
             },
             {
               "key": "server",
@@ -242,7 +244,7 @@
             },
             {
               "key": "content-length",
-              "value": "46"
+              "value": "53"
             },
             {
               "key": "content-type",
@@ -250,9 +252,42 @@
             }
           ],
           "cookie": [],
-          "body": "{\n    \"video_id\": \"test-video-1\",\n    \"deleted_chunks\": 6\n}"
+          "body": "{\n    \"youtube_video_id\": \"dQw4w9WgXcQ\",\n    \"deleted_chunks\": 6\n}"
         }
       ]
+    },
+    {
+      "name": "Chat",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Internal-Token",
+            "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"session_id\": \"session-001\",\r\n  \"chatbot_id\": \"chatbot-001\",\r\n  \"language\": \"en\",\r\n  \"conversation_history\": [],\r\n  \"config\": {\r\n    \"chatbot_name\": \"Music Bot\",\r\n    \"persona_description\": \"An expert on music videos and lyrics\",\r\n    \"persona_keywords\": [\"music\", \"lyrics\", \"artist\"],\r\n    \"tone\": \"informative\",\r\n    \"response_length\": \"detailed\",\r\n    \"top_k\": 10,\r\n    \"similarity_threshold\": 0.3,\r\n    \"max_context_turns\": 10\r\n  },\r\n  \"query\": \"Compare the themes across all three videos\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api}}/chat/process",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "chat",
+            "process"
+          ]
+        }
+      },
+      "response": []
     }
   ],
   "event": [

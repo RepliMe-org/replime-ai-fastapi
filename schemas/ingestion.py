@@ -31,6 +31,7 @@ class VideoIndexedCallback(BaseModel):
 
 
 class DeleteVideoRequest(BaseModel):
+    chatbot_id: str
     youtube_video_id: str
 
 
