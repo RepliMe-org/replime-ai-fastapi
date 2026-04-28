@@ -30,7 +30,6 @@ class VectorStore:
     def upsert_chunks(
         self,
         chatbot_id: str,
-        video_id: str,
         youtube_video_id: str,
         video_title: str,
         chunks: list[str],
@@ -39,10 +38,9 @@ class VectorStore:
     ) -> None:
         try:
             collection = self._get_collection(chatbot_id)
-            ids = [f"chunk_{video_id}_{i}" for i in range(len(chunks))]
+            ids = [f"chunk_{youtube_video_id}_{i}" for i in range(len(chunks))]
             metadatas = [
                 {
-                    "video_id": video_id,
                     "youtube_video_id": youtube_video_id,
                     "video_title": video_title,
                     "timestamp_seconds": timestamps[i] if timestamps[i] is not None else -1,
@@ -55,7 +53,7 @@ class VectorStore:
                 documents=chunks,
                 metadatas=metadatas,
             )
-            logger.info("Upserted %d chunks for video_id=%s", len(chunks), video_id)
+            logger.info("Upserted %d chunks for youtube_video_id=%s", len(chunks), youtube_video_id)
         except ChromaError as exc:
             raise VectorStoreError(f"upsert_chunks failed: {exc}") from exc
 
@@ -85,7 +83,6 @@ class VectorStore:
                 output.append(
                     {
                         "chunk_text": doc,
-                        "video_id": meta["video_id"],
                         "youtube_video_id": meta["youtube_video_id"],
                         "video_title": meta["video_title"],
                         "timestamp_seconds": meta["timestamp_seconds"],
@@ -96,17 +93,17 @@ class VectorStore:
         except ChromaError as exc:
             raise VectorStoreError(f"search failed: {exc}") from exc
 
-    def delete_by_video_id(self, chatbot_id: str, video_id: str) -> int:
+    def delete_by_video_id(self, chatbot_id: str, youtube_video_id: str) -> int:
         try:
             collection = self._get_collection(chatbot_id)
             results = collection.get(
-                where={"video_id": video_id},
+                where={"youtube_video_id": youtube_video_id},
                 include=[],
             )
             ids = results["ids"]
             if ids:
                 collection.delete(ids=ids)
-            logger.info("Deleted %d chunks for video_id=%s", len(ids), video_id)
+            logger.info("Deleted %d chunks for youtube_video_id=%s", len(ids), youtube_video_id)
             return len(ids)
         except ChromaError as exc:
             raise VectorStoreError(f"delete_by_video_id failed: {exc}") from exc

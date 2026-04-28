@@ -1,12 +1,12 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, status, Body
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, status
 
 from core.dependencies import verify_internal_token
 from rag.vector_store import get_vector_store
 from schemas.ingestion import (
     DeleteVideoRequest,
     DeleteVideoResponse,
-    IndexVideoRequest,
-    IndexVideoResponse,
+    IndexVideosAcceptedResponse,
+    IndexVideosRequest,
 )
 from services.ingestion_service import run_ingestion
 
@@ -14,32 +14,31 @@ router = APIRouter(dependencies=[Depends(verify_internal_token)])
 
 
 @router.post(
-    "/internal/videos/{video_id}/index",
-    response_model=IndexVideoResponse,
+    "/ingest/videos",
+    response_model=IndexVideosAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def index_video(
-    video_id: str,
-    request: IndexVideoRequest,
+async def index_videos(
+    request: IndexVideosRequest,
     background_tasks: BackgroundTasks,
-) -> IndexVideoResponse:
-    background_tasks.add_task(
-        run_ingestion,
-        video_id,
-        request.chatbot_id,
-        request.youtube_video_id,
-        request.video_title,
+) -> IndexVideosAcceptedResponse:
+    for video in request.videos:
+        background_tasks.add_task(
+            run_ingestion,
+            request.chatbot_id,
+            video.youtube_video_id,
+            video.video_title,
+        )
+    return IndexVideosAcceptedResponse(
+        status="ACCEPTED",
+        chatbot_id=request.chatbot_id,
+        total=len(request.videos),
     )
-    return IndexVideoResponse(status="accepted", video_id=video_id)
 
 
-@router.delete(
-    "/internal/videos/{video_id}",
-    response_model=DeleteVideoResponse,
-)
+@router.delete("/delete/video", response_model=DeleteVideoResponse)
 def delete_video(
-    video_id: str,
     request: DeleteVideoRequest = Body(...),
 ) -> DeleteVideoResponse:
-    count = get_vector_store().delete_by_video_id(request.chatbot_id, video_id)
-    return DeleteVideoResponse(video_id=video_id, deleted_chunks=count)
+    count = get_vector_store().delete_by_video_id(request.chatbot_id, request.youtube_video_id)
+    return DeleteVideoResponse(youtube_video_id=request.youtube_video_id, deleted_chunks=count)
