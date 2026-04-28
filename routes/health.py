@@ -15,7 +15,7 @@ def health_check():
     health = {"status": "ok", "service": "ai-fastapi", "components": {}}
 
     try:
-        client = chromadb.HttpClient(host=settings.CHROMA_HOST, port=settings.CHROMA_PORT)
+        client = chromadb.PersistentClient(path=settings.CHROMA_PATH)
         client.heartbeat()
         health["components"]["chroma"] = {"status": "ok"}
     except Exception as e:
