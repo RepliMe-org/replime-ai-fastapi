@@ -1,4 +1,4 @@
-from schemas.chat import ChatbotConfig
+from schemas.chat import ChatbotConfig, ConversationMessage
 
 
 TONE_MAP = {
@@ -17,6 +17,22 @@ FORMALITY_MAP = {
     "NEUTRAL": "Use neutral language, neither too formal nor too casual.",
     "FORMAL": "Use formal, professional language.",
 }
+
+_ROLE_MAP = {"USER": "user", "BOT": "assistant"}
+
+
+def _format_chunks(chunks: list[dict]) -> str:
+    parts = []
+    for i, chunk in enumerate(chunks, start=1):
+        timestamp = chunk.get("timestamp_seconds")
+        mmss = f"{timestamp // 60:02d}:{timestamp % 60:02d}" if timestamp is not None else "00:00"
+        t_param = f"&t={timestamp}s" if timestamp is not None else ""
+        parts.append(
+            f"[Source {i}] {chunk['video_title']} @ {mmss}\n"
+            f"{chunk['chunk_text']}\n"
+            f"Link: https://youtube.com/watch?v={chunk['youtube_video_id']}{t_param}"
+        )
+    return "\n---\n".join(parts)
 
 
 def build_system_prompt(config: ChatbotConfig, language: str) -> str:
@@ -48,3 +64,26 @@ def build_system_prompt(config: ChatbotConfig, language: str) -> str:
 
     return f"{persona}\n{verbosity_instruction}{rules}"
 
+
+def build_messages(
+    query: str,
+    chunks: list[dict],
+    history: list[ConversationMessage],
+    config: ChatbotConfig,
+    language: str,
+) -> list[dict]:
+    messages: list[dict] = [
+        {"role": "system", "content": build_system_prompt(config, language)}
+    ]
+    for msg in history:
+        role = _ROLE_MAP.get(msg.role)
+        if role is None:
+            continue
+        messages.append({"role": role, "content": msg.content})
+    if chunks:
+        messages.append({
+            "role": "user",
+            "content": "Context from videos:\n" + _format_chunks(chunks),
+        })
+    messages.append({"role": "user", "content": query})
+    return messages

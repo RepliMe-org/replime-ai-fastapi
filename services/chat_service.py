@@ -1,9 +1,12 @@
 import logging
 import time
 
+from core.config import settings
+from core.exceptions import EmbeddingError, LLMError, VectorStoreError
 from rag.embedder import get_embedder
+from rag.language_detector import detect_language
 from rag.llm_client import get_llm_client
-from rag.prompt_builder import build_prompt
+from rag.prompt_builder import build_messages
 from rag.query_rewriter import get_query_rewriter
 from rag.vector_store import get_vector_store
 from schemas.chat import ChatProcessRequest, ChatProcessResponse, Source
@@ -19,57 +22,57 @@ _FALLBACK_TEMPLATES = {
 async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
     query = request.query.strip()
 
-    llm = get_llm_client()
+    language = detect_language(query, fallback=request.config.default_language)
+
     final_query = await get_query_rewriter().rewrite(query, request.conversation_history)
-    rewritten_query = final_query
-    logger.info("step=rewrite_done session_id=%s query=%r", request.session_id, final_query)
+    logger.info("step=rewrite_done query=%r", final_query)
 
-    query_embedding = await get_embedder().embed_one(final_query)
-    logger.info("step=embed_done session_id=%s", request.session_id)
+    try:
+        query_embedding = await get_embedder().embed_one(final_query)
+    except Exception as exc:
+        raise EmbeddingError("Embedding failed") from exc
+    logger.info("step=embed_done")
 
-    t0 = time.perf_counter()
-    chunks = get_vector_store().search(
-        request.chatbot_id,
-        query_embedding,
-        request.config.top_k,
-        request.config.similarity_threshold,
-    )
-    retrieval_ms = int((time.perf_counter() - t0) * 1000)
-    logger.info("step=retrieve_done session_id=%s query=%r chunks=%d retrieval_ms=%d", request.session_id, final_query, len(chunks), retrieval_ms)
+    try:
+        t0 = time.perf_counter()
+        chunks = get_vector_store().search(
+            request.chatbot_id,
+            query_embedding,
+            settings.TOP_K,
+            settings.SIMILARITY_THRESHOLD,
+        )
+        retrieval_ms = int((time.perf_counter() - t0) * 1000)
+    except Exception as exc:
+        raise VectorStoreError("Retrieval failed") from exc
+    logger.info("step=retrieve_done chunks=%d retrieval_ms=%d", len(chunks), retrieval_ms)
 
     if not chunks:
-        logger.info("step=fallback session_id=%s language=%s", request.session_id, request.language)
-        template = _FALLBACK_TEMPLATES.get(request.language, _FALLBACK_TEMPLATES["en"])
+        template = _FALLBACK_TEMPLATES.get(language, _FALLBACK_TEMPLATES["en"])
         return ChatProcessResponse(
             answer=template.format(chatbot_name=request.config.chatbot_name),
             sources=[],
-            retrieval_ms=retrieval_ms,
-            llm_ms=0,
-            rewritten_query=rewritten_query,
         )
 
-    messages = build_prompt(final_query, chunks, request.conversation_history, request.config)
-    answer, llm_ms = await llm.generate(messages)
-    logger.info("step=generate_done session_id=%s llm_ms=%d", request.session_id, llm_ms)
+    messages = build_messages(final_query, chunks, request.conversation_history, request.config, language)
 
-    sources = [
-        Source(
-            video_title=chunk["video_title"],
-            chunk_text=chunk["chunk_text"],
-            youtube_url=(
-                f"https://youtube.com/watch?v={chunk['youtube_video_id']}"
-                f"&t={chunk['timestamp_seconds']}s"
-            ),
-            timestamp_seconds=chunk["timestamp_seconds"],
-            similarity_score=chunk["similarity_score"],
+    try:
+        answer, llm_ms = await get_llm_client().generate(messages)
+    except Exception as exc:
+        raise LLMError("LLM generation failed") from exc
+    logger.info("step=generate_done llm_ms=%d", llm_ms)
+
+    sources = []
+    for chunk in chunks:
+        ts = chunk["timestamp_seconds"]
+        timestamp_seconds = ts if ts is not None and ts >= 0 else 0
+        sources.append(
+            Source(
+                video_id=chunk["youtube_video_id"],
+                video_title=chunk["video_title"],
+                chunk_text=chunk["chunk_text"],
+                youtube_url=f"https://youtube.com/watch?v={chunk['youtube_video_id']}&t={timestamp_seconds}s",
+                timestamp_seconds=timestamp_seconds,
+            )
         )
-        for chunk in chunks
-    ]
 
-    return ChatProcessResponse(
-        answer=answer,
-        sources=sources,
-        retrieval_ms=retrieval_ms,
-        llm_ms=llm_ms,
-        rewritten_query=rewritten_query,
-    )
+    return ChatProcessResponse(answer=answer, sources=sources)
