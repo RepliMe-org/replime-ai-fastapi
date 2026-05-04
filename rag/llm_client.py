@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    def __init__(self, api_key: str = settings.GROQ_API_KEY, model: str = settings.GROQ_MODEL) -> None:
+    def __init__(self, api_key: str = settings.GROQ_API_KEY, model: str = settings.GROQ_CHAT_MODEL) -> None:
         self._client = Groq(api_key=api_key)
         self._model = model
 

@@ -1,5 +1,7 @@
 import logging
 
+from core.config import settings
+
 from schemas.chat import ConversationMessage
 from rag.llm_client import LLMClient, get_llm_client
 
@@ -56,5 +58,8 @@ _query_rewriter: QueryRewriter | None = None
 def get_query_rewriter() -> QueryRewriter:
     global _query_rewriter
     if _query_rewriter is None:
-        _query_rewriter = QueryRewriter(get_llm_client())
+        _query_rewriter = QueryRewriter(LLMClient(
+            api_key=settings.GROQ_API_KEY,
+            model=settings.GROQ_REWRITE_MODEL,
+        ))
     return _query_rewriter

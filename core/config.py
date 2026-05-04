@@ -27,7 +27,11 @@ class Settings(BaseSettings):
 
     # Groq LLM settings
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.1-8b-instant"
+    GROQ_CHAT_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_REWRITE_MODEL: str = "llama-3.1-8b-instant"
+    TOP_K: int = 5
+    SIMILARITY_THRESHOLD: float = 0.4
+    
 
     # Spring Boot backend
     SPRING_BOOT_BASE_URL: str = "http://localhost:8080/api/v1"
