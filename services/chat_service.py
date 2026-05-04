@@ -58,6 +58,7 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
     try:
         answer, llm_ms = await get_llm_client().generate(messages)
     except Exception as exc:
+        logger.error("LLM generation failed: %s", exc)
         raise LLMError("LLM generation failed") from exc
     logger.info("step=generate_done llm_ms=%d", llm_ms)
 

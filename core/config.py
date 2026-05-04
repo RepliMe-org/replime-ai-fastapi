@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     # Embedding model settings
     EMBEDDING_MODEL_ID: str = "paraphrase-multilingual-MiniLM-L12-v2"
+    TRANSFORMERS_OFFLINE: int = 1  # Set to 1 to force offline mode for HuggingFace models
     CACHE_DIR: str = ".cache/models"
 
     # HuggingFace (optional — set in .env for faster downloads)

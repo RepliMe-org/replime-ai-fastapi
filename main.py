@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from core.exceptions import AppError
 from core.logging import setup_logging
+from rag.embedder import get_embedder
 from routes import api_router
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+    logger.info("Loading embedding model at startup...")
+    get_embedder()._load()
+    logger.info("Embedding model ready.")
     yield
 
 
