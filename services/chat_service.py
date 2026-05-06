@@ -28,7 +28,7 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
     logger.info("step=rewrite_done query=%r", final_query)
 
     try:
-        query_embedding = await get_embedder().embed_one(final_query)
+        query_embedding = await get_embedder().embed_query(final_query)
     except Exception as exc:
         raise EmbeddingError("Embedding failed") from exc
     logger.info("step=embed_done")

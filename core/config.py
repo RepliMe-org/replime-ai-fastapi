@@ -19,9 +19,11 @@ class Settings(BaseSettings):
     CHROMA_PATH: str = ".chroma"
 
     # Embedding model settings
-    EMBEDDING_MODEL_ID: str = "paraphrase-multilingual-MiniLM-L12-v2"
+    EMBEDDING_MODEL_ID: str = "intfloat/multilingual-e5-large"
     TRANSFORMERS_OFFLINE: int = 1  # Set to 1 to force offline mode for HuggingFace models
     CACHE_DIR: str = ".cache/models"
+    EMBEDDING_DOC_PREFIX: str = "passage: "
+    EMBEDDING_QUERY_PREFIX: str = "query: "
 
     # HuggingFace (optional — set in .env for faster downloads)
     HF_TOKEN: Optional[str] = None

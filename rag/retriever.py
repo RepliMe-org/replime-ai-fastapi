@@ -21,7 +21,7 @@ class Retriever:
         top_k: int = _DEFAULT_TOP_K,
         similarity_threshold: float = _DEFAULT_SIMILARITY_THRESHOLD,
     ) -> list[dict]:
-        query_embedding = await self._embedder.embed_one(query)
+        query_embedding = await self._embedder.embed_query(query)
         results = self._vector_store.search(
             chatbot_id=chatbot_id,
             query_embedding=query_embedding,

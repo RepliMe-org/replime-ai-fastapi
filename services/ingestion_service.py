@@ -43,7 +43,7 @@ async def run_ingestion(
         chunks = chunk_transcript(segments)
 
         logger.info("step=embed", extra={"youtube_video_id": youtube_video_id})
-        embeddings = await get_embedder().embed([c["text"] for c in chunks])
+        embeddings = await get_embedder().embed_documents([c["text"] for c in chunks])
 
         logger.info("step=upsert", extra={"youtube_video_id": youtube_video_id})
         get_vector_store().upsert_chunks(

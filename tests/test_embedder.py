@@ -14,13 +14,13 @@ async def embedder() -> Embedder:
 
 @pytest.mark.asyncio
 async def test_embedding_dimension(embedder: Embedder) -> None:
-    vector = await embedder.embed_one("Hello, world!")
+    vector = await embedder.embed_query("Hello, world!")
     assert len(vector) == EXPECTED_DIM
 
 
 @pytest.mark.asyncio
 async def test_same_input_same_output(embedder: Embedder) -> None:
     text = "Reproducibility check"
-    first = await embedder.embed_one(text)
-    second = await embedder.embed_one(text)
+    first = await embedder.embed_query(text)
+    second = await embedder.embed_query(text)
     assert first == second
