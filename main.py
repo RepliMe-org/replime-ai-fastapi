@@ -8,6 +8,7 @@ from core.exceptions import AppError
 from core.logging import setup_logging
 from rag.embedder import get_embedder
 from routes import api_router
+from services.ingestion_service import close_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
     get_embedder()._load()
     logger.info("Embedding model ready.")
     yield
+    await close_http_client()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -41,6 +43,4 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
-
 app.include_router(api_router)
-

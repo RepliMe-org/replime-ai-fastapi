@@ -1,9 +1,8 @@
 import logging
 
 from core.config import settings
-
-from schemas.chat import ConversationMessage
 from rag.llm_client import LLMClient, get_llm_client
+from schemas.chat import ConversationMessage
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +11,7 @@ _SYSTEM_PROMPT = (
     "Rewrite the user's latest message so it is fully self-contained — resolve any pronouns, "
     "references to previous messages, or implied context so the rewritten query makes sense "
     "without the conversation history. If the query is already self-contained, return it unchanged. "
+    "Preserve the original language of the query in your output. "
     "Return only the rewritten query. No explanation, no added commentary."
 )
 
@@ -25,29 +25,34 @@ def _format_history(history: list[ConversationMessage]) -> str:
 
 
 class QueryRewriter:
-    def __init__(self, llm_client: LLMClient) -> None:
+    def __init__(self, llm_client: LLMClient, arabic_llm_client: LLMClient) -> None:
         self._llm_client = llm_client
+        self._arabic_llm_client = arabic_llm_client
 
-    async def rewrite(self, query: str, history: list[ConversationMessage]) -> str:
+    async def rewrite(
+        self,
+        query: str,
+        history: list[ConversationMessage],
+        language: str = "en",
+    ) -> str:
         if not history:
             return query
 
+        client = self._arabic_llm_client if language == "ar" else self._llm_client
+
         formatted = _format_history(history)
-        user_content = (
-            f"Conversation history:\n{formatted}\n\nLatest message: {query}"
-        )
+        user_content = f"Conversation history:\n{formatted}\n\nLatest message: {query}"
         messages = [
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": user_content},
         ]
-        rewritten, _ = await self._llm_client.generate(
-            messages, max_tokens=128, temperature=0.1
-        )
+        rewritten, _ = await client.generate(messages, max_tokens=128, temperature=0.1)
         rewritten = rewritten.strip()
         logger.info(
-            "Query rewritten: original=%r rewritten=%r",
+            "Query rewritten: original=%r rewritten=%r language=%s",
             query[:80],
             rewritten[:80],
+            language,
         )
         return rewritten
 
@@ -58,8 +63,14 @@ _query_rewriter: QueryRewriter | None = None
 def get_query_rewriter() -> QueryRewriter:
     global _query_rewriter
     if _query_rewriter is None:
-        _query_rewriter = QueryRewriter(LLMClient(
-            api_key=settings.GROQ_API_KEY,
-            model=settings.GROQ_REWRITE_MODEL,
-        ))
+        _query_rewriter = QueryRewriter(
+            llm_client=LLMClient(
+                api_key=settings.GROQ_API_KEY,
+                model=settings.GROQ_REWRITE_MODEL,
+            ),
+            arabic_llm_client=LLMClient(
+                api_key=settings.GROQ_API_KEY,
+                model=settings.GROQ_ARABIC_REWRITE_MODEL,
+            ),
+        )
     return _query_rewriter
