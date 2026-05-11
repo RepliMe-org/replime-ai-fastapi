@@ -1,26 +1,49 @@
 import logging
-from langdetect import detect, LangDetectException
+import re
+
+from langdetect import LangDetectException, detect_langs
+from langdetect.detector_factory import DetectorFactory
+
+DetectorFactory.seed = 0  # deterministic results across calls
 
 logger = logging.getLogger(__name__)
 
+_ARABIC_RE = re.compile(r"[؀-ۿ]")
+_SUPPORTED = frozenset({"en", "ar"})
+_CONFIDENCE_THRESHOLD = 0.85
 
-def detect_language(text: str, fallback: str = "en") -> str:
+
+def detect_language(
+    text: str,
+    history: list | None = None,
+    fallback: str = "en",
+) -> str:
+    text = text.strip()
+    if not text:
+        return fallback
+
+    # Fast path: presence of Arabic Unicode block characters
+    if _ARABIC_RE.search(text):
+        return "ar"
+
+    # langdetect with confidence threshold
     try:
-        if not text.strip():
-            logger.warning("Empty text provided, returning fallback language")
-            return fallback
+        results = detect_langs(text)
+        if results:
+            top = results[0]
+            if top.prob >= _CONFIDENCE_THRESHOLD and top.lang in _SUPPORTED:
+                return top.lang
+    except LangDetectException as exc:
+        logger.warning("Language detection failed: %s", exc)
+    except Exception as exc:
+        logger.warning("Unexpected error during language detection: %s", exc)
 
-        lang = detect(text)
+    # Fallback: infer from most recent user message in conversation history
+    if history:
+        for msg in reversed(history):
+            if getattr(msg, "role", None) == "USER" and msg.content.strip():
+                if _ARABIC_RE.search(msg.content):
+                    return "ar"
+                break
 
-        if not lang:
-            logger.warning("Detection returned empty result, returning fallback language")
-            return fallback
-
-        return lang
-
-    except LangDetectException as e:
-        logger.warning("Language detection failed: %s, returning fallback language", e)
-        return fallback
-    except Exception as e:
-        logger.warning("Unexpected error during language detection: %s, returning fallback language", e)
-        return fallback
+    return fallback

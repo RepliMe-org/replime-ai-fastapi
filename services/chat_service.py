@@ -8,6 +8,7 @@ from rag.language_detector import detect_language
 from rag.llm_client import get_llm_client
 from rag.prompt_builder import build_messages
 from rag.query_rewriter import get_query_rewriter
+from rag.text_normalizer import normalize_arabic
 from rag.vector_store import get_vector_store
 from schemas.chat import ChatProcessRequest, ChatProcessResponse, Source
 
@@ -19,16 +20,30 @@ _FALLBACK_TEMPLATES = {
 }
 
 
+def _deduplicate_sources(chunks: list[dict]) -> list[dict]:
+    seen: set[str] = set()
+    unique = []
+    for chunk in chunks:
+        vid = chunk["youtube_video_id"]
+        if vid not in seen:
+            seen.add(vid)
+            unique.append(chunk)
+    return unique
+
+
 async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
     query = request.query.strip()
 
-    language = detect_language(query)
+    language = detect_language(query, history=request.conversation_history)
 
-    final_query = await get_query_rewriter().rewrite(query, request.conversation_history)
+    final_query = await get_query_rewriter().rewrite(query, request.conversation_history, language=language)
     logger.info("step=rewrite_done query=%r", final_query)
 
+    # Normalize Arabic query before embedding so it matches normalized stored chunks
+    embed_query = normalize_arabic(final_query) if language == "ar" else final_query
+
     try:
-        query_embedding = await get_embedder().embed_query(final_query)
+        query_embedding = await get_embedder().embed_query(embed_query)
     except Exception as exc:
         raise EmbeddingError("Embedding failed") from exc
     logger.info("step=embed_done")
@@ -62,8 +77,9 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
         raise LLMError("LLM generation failed") from exc
     logger.info("step=generate_done llm_ms=%d", llm_ms)
 
+    source_chunks = _deduplicate_sources(chunks)
     sources = []
-    for chunk in chunks:
+    for chunk in source_chunks:
         ts = chunk["timestamp_seconds"]
         timestamp_seconds = ts if ts is not None and ts >= 0 else 0
         sources.append(
