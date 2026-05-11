@@ -36,33 +36,43 @@ def _format_chunks(chunks: list[dict]) -> str:
 
 
 def build_system_prompt(config: ChatbotConfig, language: str) -> str:
+    persona_desc = (config.persona_description or "").strip()
+
     if config.talk_like_me:
-        persona = (
-            f"You are {config.chatbot_name}.\n"
-            f"{config.persona_description}\n"
-            "Study the provided context excerpts and mirror the creator's exact voice, vocabulary, and phrasing."
-        )
+        persona_lines = [
+            f"You are {config.chatbot_name}.",
+            persona_desc,
+            "Study the context excerpts carefully and mirror the creator's exact voice, vocabulary, and phrasing.",
+        ]
     else:
         tone_instruction = TONE_MAP.get(config.tone.upper() if config.tone else "", "adapt to the context")
         formality_instruction = FORMALITY_MAP.get(config.formality.upper() if config.formality else "", "adapt to the context")
-        persona = (
-            f"You are {config.chatbot_name}.\n"
-            f"{config.persona_description}\n"
-            f"Tone: {tone_instruction}\n"
-            f"{formality_instruction}"
-        )
+        persona_lines = [
+            f"You are {config.chatbot_name}.",
+            persona_desc,
+            f"Tone: {tone_instruction}",
+            formality_instruction,
+        ]
+
+    persona = "\n".join(line for line in persona_lines if line)
 
     verbosity_instruction = VERBOSITY_MAP.get(config.verbosity.upper(), "")
 
     rules = (
-        "\n\n---\n"
-        "Only answer based on the provided context from the creator's videos.\n"
-        "If the context does not contain enough information to answer, say so honestly.\n"
-        "Never make up information not present in the context.\n"
-        f"Always reply in the language with code: {language}"
+        "---\n"
+        "Rules:\n"
+        "- Answer only from the provided context; do not use outside knowledge.\n"
+        "- Read ALL provided sources before answering; if multiple sources cover the question, synthesize them into one cohesive answer rather than stopping at the first relevant one.\n"
+        "- Synthesize and explain the information in your own words; never copy or paraphrase sentences directly from the context.\n"
+        "- Present ideas clearly and naturally as if explaining to someone — not quoting a transcript.\n"
+        "- When citing information, reference the source number (e.g. [Source 1]).\n"
+        "- If the query is too vague or short to determine what the user is asking, ask one focused clarifying question instead of answering — even if context is available.\n"
+        "- If the context lacks enough information, say so honestly instead of guessing.\n"
+        f"- Always reply in the language with code: {language}"
     )
 
-    return f"{persona}\n{verbosity_instruction}{rules}"
+    parts = [persona, verbosity_instruction, rules]
+    return "\n\n".join(part for part in parts if part)
 
 
 def build_messages(
@@ -75,15 +85,20 @@ def build_messages(
     messages: list[dict] = [
         {"role": "system", "content": build_system_prompt(config, language)}
     ]
+
     for msg in history:
         role = _ROLE_MAP.get(msg.role)
         if role is None:
             continue
         messages.append({"role": role, "content": msg.content})
+
     if chunks:
-        messages.append({
-            "role": "user",
-            "content": "Context from videos:\n" + _format_chunks(chunks),
-        })
-    messages.append({"role": "user", "content": query})
+        user_content = (
+            f"<context>\n{_format_chunks(chunks)}\n</context>\n\n"
+            f"<question>\n{query}\n</question>"
+        )
+    else:
+        user_content = query
+
+    messages.append({"role": "user", "content": user_content})
     return messages
