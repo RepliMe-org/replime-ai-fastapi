@@ -22,7 +22,7 @@ _FALLBACK_TEMPLATES = {
 async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
     query = request.query.strip()
 
-    language = detect_language(query, fallback=request.config.default_language)
+    language = detect_language(query)
 
     final_query = await get_query_rewriter().rewrite(query, request.conversation_history)
     logger.info("step=rewrite_done query=%r", final_query)
@@ -70,9 +70,7 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
             Source(
                 video_id=chunk["youtube_video_id"],
                 video_title=chunk["video_title"],
-                chunk_text=chunk["chunk_text"],
                 youtube_url=f"https://youtube.com/watch?v={chunk['youtube_video_id']}&t={timestamp_seconds}s",
-                timestamp_seconds=timestamp_seconds,
             )
         )
 

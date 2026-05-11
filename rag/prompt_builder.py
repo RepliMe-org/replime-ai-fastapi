@@ -36,12 +36,9 @@ def _format_chunks(chunks: list[dict]) -> str:
 
 
 def build_system_prompt(config: ChatbotConfig, language: str) -> str:
-    persona_desc = (config.persona_description or "").strip()
-
     if config.talk_like_me:
         persona_lines = [
             f"You are {config.chatbot_name}.",
-            persona_desc,
             "Study the context excerpts carefully and mirror the creator's exact voice, vocabulary, and phrasing.",
         ]
     else:
@@ -49,7 +46,6 @@ def build_system_prompt(config: ChatbotConfig, language: str) -> str:
         formality_instruction = FORMALITY_MAP.get(config.formality.upper() if config.formality else "", "adapt to the context")
         persona_lines = [
             f"You are {config.chatbot_name}.",
-            persona_desc,
             f"Tone: {tone_instruction}",
             formality_instruction,
         ]

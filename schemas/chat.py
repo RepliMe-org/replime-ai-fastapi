@@ -5,12 +5,10 @@ from pydantic import BaseModel, Field, field_validator
 
 class ChatbotConfig(BaseModel):
     chatbot_name: str
-    persona_description: str
     talk_like_me: bool
     tone: str | None = None
     verbosity: str
     formality: str | None = None
-    default_language: str = "en"
 
 
 class ConversationMessage(BaseModel):
@@ -18,11 +16,19 @@ class ConversationMessage(BaseModel):
     content: str
 
 
+class MessageClass(BaseModel):
+    id: int
+    name: str
+
+
 class ChatProcessRequest(BaseModel):
     chatbot_id: str
+    message_id: int
     query: str = Field(min_length=1, max_length=5000)
     conversation_history: list[ConversationMessage]
+    message_classes: list[MessageClass]
     config: ChatbotConfig
+    first_message: bool = False
 
     @field_validator("query")
     @classmethod
@@ -35,11 +41,10 @@ class ChatProcessRequest(BaseModel):
 class Source(BaseModel):
     video_id: str
     video_title: str
-    chunk_text: str
     youtube_url: str
-    timestamp_seconds: int
 
 
 class ChatProcessResponse(BaseModel):
     answer: str
+    session_title: str | None = None
     sources: list[Source]
