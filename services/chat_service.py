@@ -1,14 +1,17 @@
+import asyncio
 import logging
 import time
 
 from core.config import settings
 from core.exceptions import EmbeddingError, LLMError, VectorStoreError
 from rag.embedder import get_embedder
+from rag.intent_classifier import get_hardcoded_response, get_intent_classifier
 from rag.language_detector import detect_language
 from rag.llm_client import get_llm_client
 from rag.prompt_builder import build_messages
 from rag.query_rewriter import get_query_rewriter
 from rag.text_normalizer import normalize_arabic
+from rag.title_generator import get_title_generator
 from rag.vector_store import get_vector_store
 from schemas.chat import ChatProcessRequest, ChatProcessResponse, Source
 
@@ -36,10 +39,20 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
 
     language = detect_language(query, history=request.conversation_history)
 
-    final_query = await get_query_rewriter().rewrite(query, request.conversation_history, language=language)
+    # Classify intent and rewrite query concurrently — both are independent LLM calls
+    intent, final_query = await asyncio.gather(
+        get_intent_classifier().classify(query),
+        get_query_rewriter().rewrite(query, request.conversation_history, language=language),
+    )
+    logger.info("step=intent_done intent=%s", intent)
     logger.info("step=rewrite_done query=%r", final_query)
 
-    # Normalize Arabic query before embedding so it matches normalized stored chunks
+    # Short-circuit for non-content intents
+    if intent != "CONTENT_QUESTION":
+        answer = get_hardcoded_response(intent, language, request.config.chatbot_name)
+        return ChatProcessResponse(answer=answer, sources=[])
+
+    # Normalize Arabic query before embedding to match stored normalized chunks
     embed_query = normalize_arabic(final_query) if language == "ar" else final_query
 
     try:
@@ -71,11 +84,19 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
     messages = build_messages(final_query, chunks, request.conversation_history, request.config, language)
 
     try:
-        answer, llm_ms = await get_llm_client().generate(messages)
-    except Exception as exc:
+        if request.first_message:
+            # Generate answer and session title concurrently
+            (answer, llm_ms), session_title = await asyncio.gather(
+                get_llm_client().generate(messages),
+                get_title_generator().generate(final_query),
+            )
+        else:
+            answer, llm_ms = await get_llm_client().generate(messages)
+            session_title = None
+    except (LLMError, Exception) as exc:
         logger.error("LLM generation failed: %s", exc)
         raise LLMError("LLM generation failed") from exc
-    logger.info("step=generate_done llm_ms=%d", llm_ms)
+    logger.info("step=generate_done llm_ms=%d session_title=%r", llm_ms, session_title)
 
     source_chunks = _deduplicate_sources(chunks)
     sources = []
@@ -90,4 +111,4 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
             )
         )
 
-    return ChatProcessResponse(answer=answer, sources=sources)
+    return ChatProcessResponse(answer=answer, session_title=session_title, sources=sources)

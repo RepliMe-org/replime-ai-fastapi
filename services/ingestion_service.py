@@ -1,6 +1,5 @@
 import logging
 
-import httpx
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from core.config import settings
@@ -10,36 +9,13 @@ from rag.language_detector import detect_language
 from rag.transcript_loader import load_transcript
 from rag.vector_store import get_vector_store
 from schemas.ingestion import VideoIndexedCallback
+from services.http_client import get_http_client, is_retryable_http_error
 
 logger = logging.getLogger(__name__)
 
-_http_client: httpx.AsyncClient | None = None
-
-
-def get_http_client() -> httpx.AsyncClient:
-    global _http_client
-    if _http_client is None:
-        _http_client = httpx.AsyncClient(timeout=10.0)
-    return _http_client
-
-
-async def close_http_client() -> None:
-    global _http_client
-    if _http_client is not None:
-        await _http_client.aclose()
-        _http_client = None
-
-
-def _is_retryable_callback_error(exc: BaseException) -> bool:
-    if isinstance(exc, (httpx.ConnectError, httpx.TimeoutException)):
-        return True
-    if isinstance(exc, httpx.HTTPStatusError):
-        return exc.response.status_code >= 500
-    return False
-
 
 @retry(
-    retry=retry_if_exception(_is_retryable_callback_error),
+    retry=retry_if_exception(is_retryable_http_error),
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=8),
     reraise=True,

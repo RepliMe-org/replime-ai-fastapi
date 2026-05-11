@@ -8,7 +8,7 @@ from core.exceptions import AppError
 from core.logging import setup_logging
 from rag.embedder import get_embedder
 from routes import api_router
-from services.ingestion_service import close_http_client
+from services.http_client import close_http_client
 
 logger = logging.getLogger(__name__)
 
