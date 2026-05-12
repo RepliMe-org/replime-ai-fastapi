@@ -25,29 +25,27 @@ _FALLBACK_TEMPLATES = {
 
 
 
+
 def _extract_cited_chunks(answer: str, chunks: list[dict]) -> tuple[list[dict], str]:
     """
-    Return cited chunks and the answer with citations renumbered to match the sources array.
-    e.g. if answer cites [Source 2] and [Source 7], they become [Source 1] and [Source 2].
-    Falls back to all chunks (no renumbering) if the answer contains no citations.
+    Extract chunks cited in the answer, then strip all [Source N] markers from the answer text.
+    Returns (cited_chunks, clean_answer). clean_answer has no [Source N] references.
     """
-    original_indices = sorted({int(m) for m in re.findall(r"Source\s+(\d+)", answer)})
+    # Extract all numbers from bracket citations — handles [1], [1, 3], [1، 3، 5] (Arabic comma)
+    bracket_contents = re.findall(r"\[([^\]]+)\]", answer)
+    original_indices = sorted({int(n) for content in bracket_contents for n in re.findall(r"\d+", content)})
     valid_indices = [i for i in original_indices if 1 <= i <= len(chunks)]
-
-    if not valid_indices:
-        return chunks, answer
-
     cited = [chunks[i - 1] for i in valid_indices]
 
-    # Build renumbering map: original index → new 1-based position
-    remap = {orig: new for new, orig in enumerate(valid_indices, start=1)}
+    # Strip all bracket citations from the answer (Latin and Arabic comma variants)
+    clean_answer = re.sub(r"\s*\[[\d\s,،\-–]+\]", "", answer).strip()
 
-    def _replace(match: re.Match) -> str:
-        n = int(match.group(1))
-        return f"Source {remap[n]}" if n in remap else match.group(0)
+    # If the LLM still signals no information, clear cited as backup
+    _no_info = ("i don't have information", "i do not have information", "don't have information about that")
+    if any(p in clean_answer.lower() for p in _no_info):
+        cited = []
 
-    renumbered_answer = re.sub(r"Source\s+(\d+)", _replace, answer)
-    return cited, renumbered_answer
+    return cited, clean_answer
 
 
 async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
