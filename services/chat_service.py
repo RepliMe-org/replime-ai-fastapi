@@ -23,16 +23,6 @@ _FALLBACK_TEMPLATES = {
 }
 
 
-def _deduplicate_sources(chunks: list[dict]) -> list[dict]:
-    seen: set[str] = set()
-    unique = []
-    for chunk in chunks:
-        vid = chunk["youtube_video_id"]
-        if vid not in seen:
-            seen.add(vid)
-            unique.append(chunk)
-    return unique
-
 
 async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
     query = request.query.strip()
@@ -98,9 +88,8 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
         raise LLMError("LLM generation failed") from exc
     logger.info("step=generate_done llm_ms=%d session_title=%r", llm_ms, session_title)
 
-    source_chunks = _deduplicate_sources(chunks)
     sources = []
-    for chunk in source_chunks:
+    for chunk in chunks:
         ts = chunk["timestamp_seconds"]
         timestamp_seconds = ts if ts is not None and ts >= 0 else 0
         sources.append(
