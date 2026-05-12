@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 import time
 
 from core.config import settings
@@ -22,6 +23,31 @@ _FALLBACK_TEMPLATES = {
     "ar": "لا أملك معلومات حول ذلك في محتوى {chatbot_name}.",
 }
 
+
+
+def _extract_cited_chunks(answer: str, chunks: list[dict]) -> tuple[list[dict], str]:
+    """
+    Return cited chunks and the answer with citations renumbered to match the sources array.
+    e.g. if answer cites [Source 2] and [Source 7], they become [Source 1] and [Source 2].
+    Falls back to all chunks (no renumbering) if the answer contains no citations.
+    """
+    original_indices = sorted({int(m) for m in re.findall(r"Source\s+(\d+)", answer)})
+    valid_indices = [i for i in original_indices if 1 <= i <= len(chunks)]
+
+    if not valid_indices:
+        return chunks, answer
+
+    cited = [chunks[i - 1] for i in valid_indices]
+
+    # Build renumbering map: original index → new 1-based position
+    remap = {orig: new for new, orig in enumerate(valid_indices, start=1)}
+
+    def _replace(match: re.Match) -> str:
+        n = int(match.group(1))
+        return f"Source {remap[n]}" if n in remap else match.group(0)
+
+    renumbered_answer = re.sub(r"Source\s+(\d+)", _replace, answer)
+    return cited, renumbered_answer
 
 
 async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
@@ -88,8 +114,9 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
         raise LLMError("LLM generation failed") from exc
     logger.info("step=generate_done llm_ms=%d session_title=%r", llm_ms, session_title)
 
+    cited_chunks, answer = _extract_cited_chunks(answer, chunks)
     sources = []
-    for chunk in chunks:
+    for chunk in cited_chunks:
         ts = chunk["timestamp_seconds"]
         timestamp_seconds = ts if ts is not None and ts >= 0 else 0
         sources.append(
