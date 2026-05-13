@@ -74,12 +74,12 @@ async def classify_and_report(
                 message_id,
             )
             return
-        await _send_classification(message_id, matched.id, matched.name)
         logger.info(
             "Classified message_id=%d as class_id=%d class_name=%r",
             message_id,
             matched.id,
             matched.name,
         )
+        await _send_classification(message_id, matched.id, matched.name)
     except Exception as exc:
         logger.exception("classify_and_report failed for message_id=%d: %s", message_id, exc)
