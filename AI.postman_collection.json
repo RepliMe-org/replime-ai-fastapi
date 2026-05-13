@@ -13,18 +13,14 @@
         "header": [
           {
             "key": "X-Internal-Token",
-            "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
+            "value": "{{internal_token}}",
             "type": "text"
           }
         ],
         "url": {
           "raw": "{{api}}/health",
-          "host": [
-            "{{api}}"
-          ],
-          "path": [
-            "health"
-          ]
+          "host": ["{{api}}"],
+          "path": ["health"]
         }
       },
       "response": [
@@ -35,40 +31,21 @@
             "header": [
               {
                 "key": "X-Internal-Token",
-                "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
+                "value": "{{internal_token}}",
                 "type": "text"
               }
             ],
             "url": {
               "raw": "{{api}}/health",
-              "host": [
-                "{{api}}"
-              ],
-              "path": [
-                "health"
-              ]
+              "host": ["{{api}}"],
+              "path": ["health"]
             }
           },
           "status": "OK",
           "code": 200,
-          "_postman_previewlanguage": null,
+          "_postman_previewlanguage": "json",
           "header": [
-            {
-              "key": "date",
-              "value": "Wed, 22 Apr 2026 15:56:46 GMT"
-            },
-            {
-              "key": "server",
-              "value": "uvicorn"
-            },
-            {
-              "key": "content-length",
-              "value": "78"
-            },
-            {
-              "key": "content-type",
-              "value": "application/json"
-            }
+            { "key": "content-type", "value": "application/json" }
           ],
           "cookie": [],
           "body": "{\n    \"status\": \"ok\",\n    \"service\": \"ai-fastapi\",\n    \"components\": {\n        \"chroma\": {\n            \"status\": \"ok\"\n        }\n    }\n}"
@@ -76,126 +53,72 @@
       ]
     },
     {
-      "name": "Ingest Video",
+      "name": "Ingest Videos",
       "request": {
         "method": "POST",
         "header": [
           {
             "key": "X-Internal-Token",
-            "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
+            "value": "{{internal_token}}",
             "type": "text"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"chatbot_id\": \"chatbot-001\",\r\n  \"videos\": [\r\n    {\r\n      \"youtube_video_id\": \"dQw4w9WgXcQ\",\r\n      \"video_title\": \"How I grew to 1M subscribers\"\r\n    }\r\n  ]\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
+          "raw": "{\n  \"chatbot_id\": \"ali_muhammad_ali\",\n  \"videos\": [\n    { \"youtube_video_id\": \"biCRsdst958\", \"video_title\": \"علي وكتاب - الفارق البسيط The Slight Edge\" },\n    { \"youtube_video_id\": \"22CW76-SARA\", \"video_title\": \"علي وكتاب - حل لغز التسويف Solving The Procrastination Puzzle\" },\n    { \"youtube_video_id\": \"1TlXEW1qp38\", \"video_title\": \"علي وكتاب - معادلة التسويف The Procrastination Equation\" },\n    { \"youtube_video_id\": \"THnrunRXYss\", \"video_title\": \"علي وكتاب - قوة الإرادة\" }\n  ]\n}",
+          "options": { "raw": { "language": "json" } }
         },
         "url": {
           "raw": "{{api}}/ingest/videos",
-          "host": [
-            "{{api}}"
-          ],
-          "path": [
-            "ingest",
-            "videos"
-          ]
+          "host": ["{{api}}"],
+          "path": ["ingest", "videos"]
         }
       },
       "response": [
         {
-          "name": "success",
+          "name": "accepted",
           "originalRequest": {
             "method": "POST",
             "header": [
-              {
-                "key": "X-Internal-Token",
-                "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
-                "type": "text"
-              }
+              { "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"chatbot_id\": \"chatbot-001\",\r\n  \"videos\": [\r\n    {\r\n      \"youtube_video_id\": \"dQw4w9WgXcQ\",\r\n      \"video_title\": \"How I grew to 1M subscribers\"\r\n    }\r\n  ]\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"chatbot_id\": \"ali_muhammad_ali\",\n  \"videos\": [\n    { \"youtube_video_id\": \"biCRsdst958\", \"video_title\": \"علي وكتاب - الفارق البسيط The Slight Edge\" },\n    { \"youtube_video_id\": \"22CW76-SARA\", \"video_title\": \"علي وكتاب - حل لغز التسويف Solving The Procrastination Puzzle\" },\n    { \"youtube_video_id\": \"1TlXEW1qp38\", \"video_title\": \"علي وكتاب - معادلة التسويف The Procrastination Equation\" },\n    { \"youtube_video_id\": \"THnrunRXYss\", \"video_title\": \"علي وكتاب - قوة الإرادة\" }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{api}}/ingest/videos",
-              "host": [
-                "{{api}}"
-              ],
-              "path": [
-                "ingest",
-                "videos"
-              ]
+              "host": ["{{api}}"],
+              "path": ["ingest", "videos"]
             }
           },
           "status": "Accepted",
           "code": 202,
-          "_postman_previewlanguage": null,
-          "header": [
-            {
-              "key": "date",
-              "value": "Tue, 28 Apr 2026 11:36:16 GMT"
-            },
-            {
-              "key": "server",
-              "value": "uvicorn"
-            },
-            {
-              "key": "content-length",
-              "value": "58"
-            },
-            {
-              "key": "content-type",
-              "value": "application/json"
-            }
-          ],
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "content-type", "value": "application/json" }],
           "cookie": [],
-          "body": "{\n    \"status\": \"ACCEPTED\",\n    \"chatbot_id\": \"chatbot-001\",\n    \"total\": 1\n}"
+          "body": "{\n    \"status\": \"ACCEPTED\",\n    \"chatbot_id\": \"ali_muhammad_ali\",\n    \"total\": 4\n}"
         }
       ]
     },
     {
-      "name": "Delete video",
-      "protocolProfileBehavior": {
-        "disabledSystemHeaders": {}
-      },
+      "name": "Delete Video",
+      "protocolProfileBehavior": { "disabledSystemHeaders": {} },
       "request": {
         "method": "DELETE",
         "header": [
-          {
-            "key": "X-Internal-Token",
-            "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
-            "type": "text"
-          }
+          { "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"chatbot_id\": \"chatbot-001\",\r\n  \"youtube_video_id\": \"dQw4w9WgXcQ\"\r\n}\r\n",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
+          "raw": "{\n  \"chatbot_id\": \"ali_muhammad_ali\",\n  \"youtube_video_id\": \"biCRsdst958\"\n}",
+          "options": { "raw": { "language": "json" } }
         },
         "url": {
           "raw": "{{api}}/delete/video",
-          "host": [
-            "{{api}}"
-          ],
-          "path": [
-            "delete",
-            "video"
-          ]
+          "host": ["{{api}}"],
+          "path": ["delete", "video"]
         }
       },
       "response": [
@@ -204,55 +127,25 @@
           "originalRequest": {
             "method": "DELETE",
             "header": [
-              {
-                "key": "X-Internal-Token",
-                "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
-                "type": "text"
-              }
+              { "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"chatbot_id\": \"chatbot-001\",\r\n  \"youtube_video_id\": \"dQw4w9WgXcQ\"\r\n}\r\n",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"chatbot_id\": \"ali_muhammad_ali\",\n  \"youtube_video_id\": \"biCRsdst958\"\n}",
+              "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{api}}/delete/video",
-              "host": [
-                "{{api}}"
-              ],
-              "path": [
-                "delete",
-                "video"
-              ]
+              "host": ["{{api}}"],
+              "path": ["delete", "video"]
             }
           },
           "status": "OK",
           "code": 200,
-          "_postman_previewlanguage": null,
-          "header": [
-            {
-              "key": "date",
-              "value": "Tue, 28 Apr 2026 11:35:53 GMT"
-            },
-            {
-              "key": "server",
-              "value": "uvicorn"
-            },
-            {
-              "key": "content-length",
-              "value": "53"
-            },
-            {
-              "key": "content-type",
-              "value": "application/json"
-            }
-          ],
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "content-type", "value": "application/json" }],
           "cookie": [],
-          "body": "{\n    \"youtube_video_id\": \"dQw4w9WgXcQ\",\n    \"deleted_chunks\": 6\n}"
+          "body": "{\n    \"youtube_video_id\": \"biCRsdst958\",\n    \"deleted_chunks\": 6\n}"
         }
       ]
     },
@@ -261,67 +154,130 @@
       "request": {
         "method": "POST",
         "header": [
-          {
-            "key": "X-Internal-Token",
-            "value": "qp-G96zC2Z9-p7dQtl6QfoMKivP2o5Mks7FhrF5ta7Q",
-            "type": "text"
-          }
+          { "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"session_id\": \"session-001\",\r\n  \"chatbot_id\": \"chatbot-001\",\r\n  \"language\": \"en\",\r\n  \"conversation_history\": [],\r\n  \"config\": {\r\n    \"chatbot_name\": \"Music Bot\",\r\n    \"persona_description\": \"An expert on music videos and lyrics\",\r\n    \"persona_keywords\": [\"music\", \"lyrics\", \"artist\"],\r\n    \"tone\": \"informative\",\r\n    \"response_length\": \"detailed\",\r\n    \"top_k\": 10,\r\n    \"similarity_threshold\": 0.3,\r\n    \"max_context_turns\": 10\r\n  },\r\n  \"query\": \"Compare the themes across all three videos\"\r\n}\r\n",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
+          "raw": "{\n  \"chatbot_id\": \"ali_muhammad_ali\",\n  \"message_id\": 1,\n  \"query\": \"ما هو الفارق البسيط وكيف يؤثر على حياتنا؟\",\n  \"conversation_history\": [],\n  \"message_classes\": [\n    {\"id\": 0, \"name\": \"النوم\"},\n    {\"id\": 1, \"name\": \"التفوق\"},\n    {\"id\": 2, \"name\": \"الفلوس\"},\n    {\"id\": 3, \"name\": \"الروتين\"},\n    {\"id\": 4, \"name\": \"other\"}\n  ],\n  \"config\": {\n    \"chatbot_name\": \"علي وكتاب\",\n    \"talk_like_me\": false,\n    \"verbosity\": \"BALANCED\",\n    \"tone\": \"NEUTRAL\",\n    \"formality\": \"NEUTRAL\"\n  },\n  \"first_message\": true\n}",
+          "options": { "raw": { "language": "json" } }
         },
         "url": {
           "raw": "{{api}}/chat/process",
-          "host": [
-            "{{api}}"
-          ],
-          "path": [
-            "chat",
-            "process"
-          ]
+          "host": ["{{api}}"],
+          "path": ["chat", "process"]
         }
       },
-      "response": []
+      "response": [
+        {
+          "name": "content question – first message",
+          "originalRequest": {
+            "method": "POST",
+            "header": [{ "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatbot_id\": \"ali_muhammad_ali\",\n  \"message_id\": 1,\n  \"query\": \"ما هو الفارق البسيط وكيف يؤثر على حياتنا؟\",\n  \"conversation_history\": [],\n  \"message_classes\": [\n    {\"id\": 0, \"name\": \"النوم\"},\n    {\"id\": 1, \"name\": \"التفوق\"},\n    {\"id\": 2, \"name\": \"الفلوس\"},\n    {\"id\": 3, \"name\": \"الروتين\"},\n    {\"id\": 4, \"name\": \"other\"}\n  ],\n  \"config\": {\n    \"chatbot_name\": \"علي وكتاب\",\n    \"talk_like_me\": false,\n    \"verbosity\": \"BALANCED\",\n    \"tone\": \"NEUTRAL\",\n    \"formality\": \"NEUTRAL\"\n  },\n  \"first_message\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{api}}/chat/process", "host": ["{{api}}"], "path": ["chat", "process"] }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "content-type", "value": "application/json" }],
+          "cookie": [],
+          "body": "{\n    \"answer\": \"الفارق البسيط هو مفهوم يقول إن الأفعال الصغيرة المتكررة يومياً تؤدي إلى نتائج ضخمة مع مرور الوقت...\",\n    \"session_title\": \"مفهوم الفارق البسيط وتأثيره على الحياة\",\n    \"sources\": [\n        {\n            \"video_id\": \"biCRsdst958\",\n            \"video_title\": \"علي وكتاب - الفارق البسيط The Slight Edge\",\n            \"youtube_url\": \"https://youtube.com/watch?v=biCRsdst958&t=312s\"\n        }\n    ]\n}"
+        },
+        {
+          "name": "content question – follow-up",
+          "originalRequest": {
+            "method": "POST",
+            "header": [{ "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatbot_id\": \"ali_muhammad_ali\",\n  \"message_id\": 2,\n  \"query\": \"ما أسباب التسويف وكيف نتغلب عليه؟\",\n  \"conversation_history\": [],\n  \"message_classes\": [],\n  \"config\": {\n    \"chatbot_name\": \"علي وكتاب\",\n    \"talk_like_me\": false,\n    \"verbosity\": \"BALANCED\",\n    \"tone\": \"NEUTRAL\",\n    \"formality\": \"NEUTRAL\"\n  },\n  \"first_message\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{api}}/chat/process", "host": ["{{api}}"], "path": ["chat", "process"] }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "content-type", "value": "application/json" }],
+          "cookie": [],
+          "body": "{\n    \"answer\": \"التسويف ينشأ من عدة أسباب منها الخوف من الفشل والكمالية...\",\n    \"session_title\": null,\n    \"sources\": [\n        {\n            \"video_id\": \"22CW76-SARA\",\n            \"video_title\": \"علي وكتاب - حل لغز التسويف Solving The Procrastination Puzzle\",\n            \"youtube_url\": \"https://youtube.com/watch?v=22CW76-SARA&t=0s\"\n        }\n    ]\n}"
+        },
+        {
+          "name": "greeting – short-circuit",
+          "originalRequest": {
+            "method": "POST",
+            "header": [{ "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatbot_id\": \"ali_muhammad_ali\",\n  \"message_id\": 5,\n  \"query\": \"مرحبا\",\n  \"conversation_history\": [],\n  \"message_classes\": [],\n  \"config\": {\n    \"chatbot_name\": \"علي وكتاب\",\n    \"talk_like_me\": false,\n    \"verbosity\": \"BALANCED\",\n    \"tone\": \"NEUTRAL\",\n    \"formality\": \"NEUTRAL\"\n  },\n  \"first_message\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{api}}/chat/process", "host": ["{{api}}"], "path": ["chat", "process"] }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "content-type", "value": "application/json" }],
+          "cookie": [],
+          "body": "{\n    \"answer\": \"مرحباً! كيف يمكنني مساعدتك؟\",\n    \"session_title\": null,\n    \"sources\": []\n}"
+        },
+        {
+          "name": "out-of-scope – short-circuit",
+          "originalRequest": {
+            "method": "POST",
+            "header": [{ "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatbot_id\": \"ali_muhammad_ali\",\n  \"message_id\": 6,\n  \"query\": \"ما هو طقس القاهرة اليوم؟\",\n  \"conversation_history\": [],\n  \"message_classes\": [],\n  \"config\": {\n    \"chatbot_name\": \"علي وكتاب\",\n    \"talk_like_me\": false,\n    \"verbosity\": \"BALANCED\",\n    \"tone\": \"NEUTRAL\",\n    \"formality\": \"NEUTRAL\"\n  },\n  \"first_message\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{api}}/chat/process", "host": ["{{api}}"], "path": ["chat", "process"] }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "content-type", "value": "application/json" }],
+          "cookie": [],
+          "body": "{\n    \"answer\": \"لا أملك معلومات حول ذلك في محتوى علي وكتاب.\",\n    \"session_title\": null,\n    \"sources\": []\n}"
+        },
+        {
+          "name": "vague query – clarification",
+          "originalRequest": {
+            "method": "POST",
+            "header": [{ "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatbot_id\": \"ali_muhammad_ali\",\n  \"message_id\": 8,\n  \"query\": \"س\",\n  \"conversation_history\": [],\n  \"message_classes\": [],\n  \"config\": {\n    \"chatbot_name\": \"علي وكتاب\",\n    \"talk_like_me\": false,\n    \"verbosity\": \"BALANCED\",\n    \"tone\": \"NEUTRAL\",\n    \"formality\": \"NEUTRAL\"\n  },\n  \"first_message\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{api}}/chat/process", "host": ["{{api}}"], "path": ["chat", "process"] }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "content-type", "value": "application/json" }],
+          "cookie": [],
+          "body": "{\n    \"answer\": \"هل يمكنك توضيح سؤالك أكثر؟ ما الموضوع الذي تودّ الاستفسار عنه؟\",\n    \"session_title\": null,\n    \"sources\": []\n}"
+        }
+      ]
     }
   ],
   "event": [
     {
       "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "packages": {},
-        "requests": {},
-        "exec": [
-          ""
-        ]
-      }
+      "script": { "type": "text/javascript", "packages": {}, "exec": [""] }
     },
     {
       "listen": "test",
-      "script": {
-        "type": "text/javascript",
-        "packages": {},
-        "requests": {},
-        "exec": [
-          ""
-        ]
-      }
+      "script": { "type": "text/javascript", "packages": {}, "exec": [""] }
     }
   ],
   "variable": [
-    {
-      "key": "api",
-      "value": ""
-    },
-    {
-      "key": "internal_token",
-      "value": ""
-    }
+    { "key": "api", "value": "http://localhost:8000/ai" },
+    { "key": "internal_token", "value": "" }
   ]
 }

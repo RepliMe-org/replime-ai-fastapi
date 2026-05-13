@@ -14,7 +14,7 @@ core/            Config, dependencies, exceptions, logging
 
 **Ingestion flow:** YouTube transcript → chunked → embedded (sentence-transformers) → stored in ChromaDB → callback sent to Spring Boot.
 
-**Chat flow:** query → rewritten → embedded → retrieved from ChromaDB → prompt built → LLM generates answer → sources returned.
+**Chat flow:** query → language detected → intent classified & query rewritten (concurrent) → embedded → retrieved from ChromaDB → prompt built → LLM generates answer → citations extracted → sources returned. Classification (message class) runs async after the response is sent.
 
 ## Requirements
 
@@ -54,17 +54,24 @@ cp .env.example .env
 
 Edit `.env` and fill in your values:
 
-| Variable | Description |
-|---|---|
-| `APP_NAME` | Application name (default: `Replime AI FastAPI`) |
-| `APP_VERSION` | Application version |
-| `CHROMA_PATH` | ChromaDB persistent storage path (default: `.chroma`) |
-| `EMBEDDING_MODEL_ID` | Sentence-transformer model ID |
-| `HF_TOKEN` | HuggingFace API token (optional) |
-| `INTERNAL_TOKEN` | Shared secret used by Spring Boot to authenticate requests |
-| `GROQ_API_KEY` | Groq API key for LLM inference |
-| `GROQ_MODEL` | Groq model name (e.g. `llama-3.1-8b-instant`) |
-| `SPRING_BOOT_BASE_URL` | Base URL of the Spring Boot backend (e.g. `http://localhost:8080`) |
+| Variable | Default | Description |
+|---|---|---|
+| `APP_NAME` | `Replime AI FastAPI` | Application name |
+| `APP_VERSION` | `0.1.0` | Application version |
+| `INTERNAL_TOKEN` | *(required)* | Shared secret for internal endpoint auth |
+| `CHROMA_HOST` | `localhost` | ChromaDB host |
+| `CHROMA_PORT` | `8001` | ChromaDB port |
+| `CHROMA_PATH` | `.chroma` | ChromaDB persistent storage path |
+| `EMBEDDING_MODEL_ID` | `intfloat/multilingual-e5-large` | Sentence-transformer model ID |
+| `TRANSFORMERS_OFFLINE` | `1` | Set to `0` to allow HuggingFace downloads |
+| `CACHE_DIR` | `.cache/models` | Local model cache directory |
+| `HF_TOKEN` | *(optional)* | HuggingFace token for faster downloads |
+| `GROQ_API_KEY` | *(required)* | Groq API key for LLM inference |
+| `GROQ_CHAT_MODEL` | `llama-3.3-70b-versatile` | Groq model for chat answers |
+| `GROQ_REWRITE_MODEL` | `llama-3.3-70b-versatile` | Groq model for query rewriting |
+| `TOP_K` | `5` | Number of chunks to retrieve per query |
+| `SIMILARITY_THRESHOLD` | `0.4` | Minimum similarity score to include a chunk |
+| `SPRING_BOOT_BASE_URL` | `http://localhost:8080/api/v1` | Spring Boot backend base URL |
 
 ### 4. Run the server
 
@@ -112,12 +119,12 @@ Queues background ingestion of one or more YouTube videos into the vector store.
 **Request body:**
 ```json
 {
-  "chatbot_id": "chatbot-001",
+  "chatbot_id": "ali_muhammad_ali",
   "videos": [
-    {
-      "youtube_video_id": "dQw4w9WgXcQ",
-      "video_title": "How I grew to 1M subscribers"
-    }
+    { "youtube_video_id": "biCRsdst958", "video_title": "علي وكتاب - الفارق البسيط The Slight Edge" },
+    { "youtube_video_id": "22CW76-SARA", "video_title": "علي وكتاب - حل لغز التسويف Solving The Procrastination Puzzle" },
+    { "youtube_video_id": "1TlXEW1qp38", "video_title": "علي وكتاب - معادلة التسويف The Procrastination Equation" },
+    { "youtube_video_id": "THnrunRXYss", "video_title": "علي وكتاب - قوة الإرادة" }
   ]
 }
 ```
@@ -125,9 +132,9 @@ Queues background ingestion of one or more YouTube videos into the vector store.
 **Response (202 Accepted):**
 ```json
 {
-  "status": "accepted",
-  "chatbot_id": "chatbot-001",
-  "total": 1
+  "status": "ACCEPTED",
+  "chatbot_id": "ali_muhammad_ali",
+  "total": 4
 }
 ```
 
@@ -163,45 +170,58 @@ POST /ai/chat/process
 
 Runs the full RAG pipeline for a user query and returns an answer with sources.
 
-**Request body:**
+**Request body — content question (first message):**
 ```json
 {
-  "session_id": "session-001",
-  "chatbot_id": "chatbot-001",
-  "query": "What did the speaker say about consistency?",
-  "language": "en",
+  "chatbot_id": "ali_muhammad_ali",
+  "message_id": 1,
+  "query": "ما هو الفارق البسيط وكيف يؤثر على حياتنا؟",
   "conversation_history": [],
+  "message_classes": [
+    { "id": 0, "name": "النوم" },
+    { "id": 1, "name": "التفوق" },
+    { "id": 2, "name": "الفلوس" },
+    { "id": 3, "name": "الروتين" },
+    { "id": 4, "name": "other" }
+  ],
   "config": {
-    "chatbot_name": "Music Bot",
-    "persona_description": "An expert on music videos and lyrics",
-    "persona_keywords": ["music", "lyrics", "artist"],
-    "tone": "informative",
-    "response_length": "detailed",
-    "top_k": 10,
-    "similarity_threshold": 0.3,
-    "max_context_turns": 10
-  }
+    "chatbot_name": "علي وكتاب",
+    "talk_like_me": false,
+    "verbosity": "BALANCED",
+    "tone": "NEUTRAL",
+    "formality": "NEUTRAL"
+  },
+  "first_message": true
 }
 ```
+
+`conversation_history` roles must be `"USER"` or `"BOT"`. Pass `message_classes: []` to skip classification. `verbosity` accepts `"CONCISE"`, `"BALANCED"`, or `"DETAILED"`. `tone` and `formality` accept `"NEUTRAL"`, `"FRIENDLY"` / `"CASUAL"`, `"ENCOURAGING"` / `"FORMAL"`, `"HUMOROUS"`.
 
 **Response:**
 ```json
 {
-  "answer": "The speaker emphasized...",
+  "answer": "الفارق البسيط هو مفهوم يقول إن الأفعال الصغيرة المتكررة...",
+  "session_title": "مفهوم الفارق البسيط وتأثيره على الحياة",
   "sources": [
     {
-      "video_title": "How I grew to 1M subscribers",
-      "chunk_text": "...",
-      "youtube_url": "https://youtube.com/watch?v=dQw4w9WgXcQ&t=90s",
-      "timestamp_seconds": 90,
-      "similarity_score": 0.92
+      "video_id": "biCRsdst958",
+      "video_title": "علي وكتاب - الفارق البسيط The Slight Edge",
+      "youtube_url": "https://youtube.com/watch?v=biCRsdst958&t=312s"
     }
-  ],
-  "retrieval_ms": 45,
-  "llm_ms": 820,
-  "rewritten_query": "What did the speaker say about consistency?"
+  ]
 }
 ```
+
+`session_title` is only present when `first_message: true`. `sources` lists one entry per unique video cited in the answer. Classification (`message_classes`) runs asynchronously after the response is returned — pass an empty list to skip it.
+
+**Other query scenarios handled by the pipeline:**
+
+| Query type | Example | Behaviour |
+|---|---|---|
+| Content question | `ما أسباب التسويف وكيف نتغلب عليه؟` | Full RAG pipeline, sources returned |
+| Greeting | `مرحبا` | Short-circuit, no retrieval |
+| Out-of-scope | `ما هو طقس القاهرة اليوم؟` | Short-circuit, no retrieval |
+| Vague / too short | `س` | Asks a clarifying question |
 
 ## Testing
 
