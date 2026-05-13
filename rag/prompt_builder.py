@@ -20,6 +20,8 @@ FORMALITY_MAP = {
 
 _ROLE_MAP = {"USER": "user", "BOT": "assistant"}
 
+_LANGUAGE_NAME = {"ar": "Arabic", "en": "English"}
+
 
 def _format_chunks(chunks: list[dict]) -> str:
     parts = []
@@ -69,8 +71,8 @@ def build_system_prompt(config: ChatbotConfig, language: str) -> str:
         "- Never begin your answer with what you don't know. Start directly with what you do know.\n"
         "- Do not add closing remarks about topics not covered. End on the substance.\n"
         "- If the knowledge covers the topic indirectly, answer from what is available. Only say you lack information if the knowledge is genuinely unrelated to the question.\n"
-        f"- Always reply exclusively in the language with code: {language}. Never mix in other languages, scripts, or characters under any circumstances.\n"
-        "- When writing proper names (people, book titles, brands), transliterate or write them naturally in the reply language. Never switch to Latin, Cyrillic, Devanagari, or any other script mid-sentence."
+        f"- Always reply exclusively in {_LANGUAGE_NAME.get(language, language)}. Every single word and character must be in that language. Never mix in other languages, scripts, or characters under any circumstances.\n"
+        "- When writing proper names (people, book titles, brands), transliterate or write them naturally in the reply language. Never switch to Latin, Cyrillic, Devanagari, Vietnamese, or any other script mid-sentence."
     )
 
     parts = [persona, verbosity_instruction, rules]
