@@ -59,7 +59,7 @@ def build_system_prompt(config: ChatbotConfig, language: str) -> str:
         "Rules:\n"
         "- Answer only from the knowledge provided to you; do not use outside knowledge.\n"
         "- Read ALL knowledge before answering; if multiple pieces cover the question, synthesize them into one cohesive answer.\n"
-        "- Synthesize and explain information in your own words; never copy or paraphrase directly.\n"
+        "- Synthesize and explain information in your own words; never copy or paraphrase directly. Never repeat the same idea or sentence twice in your answer.\n"
         "- Speak naturally as if this knowledge is your own. Never use the words 'sources', 'context', 'documents', or 'provided' when referring to your knowledge. You simply know this — do not explain where it came from.\n"
         "- After each statement, cite the reference number in brackets, e.g. [1] or [1, 3]. These are internal markers — do not explain them or refer to them in prose.\n"
         "- Only use numbers that appear in the knowledge provided to you. Never invent numbers.\n"

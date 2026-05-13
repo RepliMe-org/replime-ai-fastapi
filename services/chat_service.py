@@ -40,8 +40,11 @@ def _extract_cited_chunks(answer: str, chunks: list[dict]) -> tuple[list[dict], 
     # Strip all bracket citations from the answer (Latin and Arabic comma variants)
     clean_answer = re.sub(r"\s*\[[\d\s,،\-–]+\]", "", answer).strip()
 
-    # If the LLM still signals no information, clear cited as backup
-    _no_info = ("i don't have information", "i do not have information", "don't have information about that")
+    # If the LLM still signals no information, clear cited as backup (English + Arabic)
+    _no_info = (
+        "i don't have information", "i do not have information", "don't have information about that",
+        "لا أملك معلومات", "لا توجد معلومات", "ليس لدي معلومات",
+    )
     if any(p in clean_answer.lower() for p in _no_info):
         cited = []
 
@@ -113,8 +116,16 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
     logger.info("step=generate_done llm_ms=%d session_title=%r", llm_ms, session_title)
 
     cited_chunks, answer = _extract_cited_chunks(answer, chunks)
-    sources = []
+
+    # Deduplicate by video_id, keeping the chunk with the highest similarity score
+    best_by_video: dict[str, dict] = {}
     for chunk in cited_chunks:
+        vid = chunk["youtube_video_id"]
+        if vid not in best_by_video or chunk["similarity_score"] > best_by_video[vid]["similarity_score"]:
+            best_by_video[vid] = chunk
+
+    sources = []
+    for chunk in best_by_video.values():
         ts = chunk["timestamp_seconds"]
         timestamp_seconds = ts if ts is not None and ts >= 0 else 0
         sources.append(
