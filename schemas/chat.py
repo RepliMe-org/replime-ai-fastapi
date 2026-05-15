@@ -23,7 +23,7 @@ class MessageClass(BaseModel):
 
 class ChatProcessRequest(BaseModel):
     chatbot_id: str
-    message_id: int
+    message_id: int | None = None
     query: str = Field(min_length=1, max_length=5000)
     conversation_history: list[ConversationMessage]
     message_classes: list[MessageClass]
