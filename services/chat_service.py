@@ -56,18 +56,25 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
 
     language = detect_language(query, history=request.conversation_history)
 
-    # Classify intent and rewrite query concurrently — both are independent LLM calls
-    intent, final_query = await asyncio.gather(
+    # Classify intent, rewrite query, and (if first message) generate title concurrently
+    tasks = [
         get_intent_classifier().classify(query),
         get_query_rewriter().rewrite(query, request.conversation_history, language=language),
-    )
+    ]
+    if request.first_message:
+        tasks.append(get_title_generator().generate(query))
+
+    results = await asyncio.gather(*tasks)
+    intent, final_query = results[0], results[1]
+    session_title = results[2] if request.first_message else None
+
     logger.info("step=intent_done intent=%s", intent)
     logger.info("step=rewrite_done query=%r", final_query)
 
     # Short-circuit for non-content intents
     if intent != "CONTENT_QUESTION":
         answer = get_hardcoded_response(intent, language, request.config.chatbot_name)
-        return ChatProcessResponse(answer=answer, sources=[])
+        return ChatProcessResponse(answer=answer, session_title=session_title, sources=[])
 
     # Normalize Arabic query before embedding to match stored normalized chunks
     embed_query = normalize_arabic(final_query) if language == "ar" else final_query
@@ -95,21 +102,14 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
         template = _FALLBACK_TEMPLATES.get(language, _FALLBACK_TEMPLATES["en"])
         return ChatProcessResponse(
             answer=template.format(chatbot_name=request.config.chatbot_name),
+            session_title=session_title,
             sources=[],
         )
 
     messages = build_messages(final_query, chunks, request.conversation_history, request.config, language)
 
     try:
-        if request.first_message:
-            # Generate answer and session title concurrently
-            (answer, llm_ms), session_title = await asyncio.gather(
-                get_llm_client().generate(messages),
-                get_title_generator().generate(final_query),
-            )
-        else:
-            answer, llm_ms = await get_llm_client().generate(messages)
-            session_title = None
+        answer, llm_ms = await get_llm_client().generate(messages)
     except (LLMError, Exception) as exc:
         logger.error("LLM generation failed: %s", exc)
         raise LLMError("LLM generation failed") from exc
