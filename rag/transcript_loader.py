@@ -38,4 +38,21 @@ def load_transcript(youtube_video_id: str) -> list[dict]:
     except Exception:
         logger.warning("Any-language fallback also failed for %s", youtube_video_id, exc_info=True)
 
+    # Attempt 3: langchain YoutubeLoader (handles auto-generated captions and some edge cases
+    # that the raw API misses; returns the full transcript as a single document)
+    try:
+        from langchain_community.document_loaders import YoutubeLoader
+
+        loader = YoutubeLoader(
+            video_id=youtube_video_id,
+            language=_LANGUAGE_PRIORITY,
+            add_video_info=False,
+        )
+        docs = loader.load()
+        if docs:
+            logger.info("Loaded transcript via langchain YoutubeLoader for %s", youtube_video_id)
+            return [{"text": docs[0].page_content, "start": 0.0}]
+    except Exception:
+        logger.warning("Langchain YoutubeLoader fallback failed for %s", youtube_video_id, exc_info=True)
+
     raise TranscriptError(f"Could not fetch transcript for {youtube_video_id}")

@@ -7,7 +7,7 @@ class ChatbotConfig(BaseModel):
     chatbot_name: str
     talk_like_me: bool
     tone: str | None = None
-    verbosity: str
+    verbosity: str | None = None
     formality: str | None = None
 
 
