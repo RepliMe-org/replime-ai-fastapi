@@ -6,8 +6,9 @@ from rag.llm_client import LLMClient
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = (
-    "You are a session title generator. "
-    "Given a user's first question, write a short session title of 4–7 words. "
+    "You are a session title generator for a content Q&A chatbot. "
+    "Given a user's first question, write a short title of 4–7 words that captures the main topic. "
+    "Focus on the subject being asked about, not the question format. "
     "Preserve the original language of the question. "
     "Return only the title. No punctuation at the end, no quotes, no explanation."
 )

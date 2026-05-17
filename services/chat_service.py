@@ -18,6 +18,21 @@ from schemas.chat import ChatProcessRequest, ChatProcessResponse, Source
 
 logger = logging.getLogger(__name__)
 
+_NON_CONTENT_TITLES: dict[str, dict[str, str | None]] = {
+    "GREETING":    {"en": "Greeting",          "ar": "تحية ترحيب"},
+    "SMALL_TALK":  {"en": "Casual Chat",        "ar": "دردشة عامة"},
+    "OUT_OF_SCOPE":{"en": "Off-topic Question", "ar": "سؤال خارج النطاق"},
+    "HARMFUL":     {"en": None,                 "ar": None},
+}
+
+
+def _resolve_session_title(intent: str, language: str, generated_title: str | None) -> str | None:
+    if intent == "CONTENT_QUESTION":
+        return generated_title
+    titles = _NON_CONTENT_TITLES.get(intent, {})
+    return titles.get(language) or titles.get("en")
+
+
 _FALLBACK_TEMPLATES = {
     "en": "I don't have information about that in {chatbot_name}'s content.",
     "ar": "لا أملك معلومات حول ذلك في محتوى {chatbot_name}.",
@@ -66,7 +81,8 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
 
     results = await asyncio.gather(*tasks)
     intent, final_query = results[0], results[1]
-    session_title = results[2] if request.first_message else None
+    raw_title = results[2] if request.first_message else None
+    session_title = _resolve_session_title(intent, language, raw_title) if request.first_message else None
 
     logger.info("step=intent_done intent=%s", intent)
     logger.info("step=rewrite_done query=%r", final_query)
