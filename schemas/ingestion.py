@@ -26,7 +26,7 @@ class IndexVideosAcceptedResponse(BaseModel):
 
 class VideoIndexedCallback(BaseModel):
     youtube_video_id: str
-    status: Literal["COMPLETED", "FAILED"]
+    status: Literal["COMPLETED", "FAILED", "FAILED_IP_BLOCK"]
     error: str | None = None             # None on success
 
 

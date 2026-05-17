@@ -18,6 +18,11 @@ class TranscriptError(AppError):
     status_code = 422
 
 
+class TranscriptRateLimitError(TranscriptError):
+    """Raised when YouTube blocks the request due to IP detection or rate-limiting."""
+    code = "TRANSCRIPT_IP_BLOCKED"
+
+
 class VectorStoreError(AppError):
     code = "VECTOR_STORE_ERROR"
     status_code = 503

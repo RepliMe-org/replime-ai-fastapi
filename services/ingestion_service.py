@@ -3,6 +3,7 @@ import logging
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from core.config import settings
+from core.exceptions import TranscriptRateLimitError
 from rag.chunker import chunk_transcript
 from rag.embedder import get_embedder
 from rag.language_detector import detect_language
@@ -81,6 +82,13 @@ async def run_ingestion(
             status="COMPLETED",
         ))
 
+    except TranscriptRateLimitError as exc:
+        logger.warning("ingestion ip_blocked youtube_video_id=%s", youtube_video_id)
+        await send_callback(VideoIndexedCallback(
+            youtube_video_id=youtube_video_id,
+            status="FAILED_IP_BLOCK",
+            error=str(exc),
+        ))
     except Exception as exc:
         logger.exception("ingestion failed youtube_video_id=%s", youtube_video_id)
         await send_callback(VideoIndexedCallback(
