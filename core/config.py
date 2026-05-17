@@ -30,8 +30,9 @@ class Settings(BaseSettings):
 
     # Groq LLM settings
     GROQ_API_KEY: str = ""
-    GROQ_CHAT_MODEL: str = "llama-3.3-70b-versatile"
-    GROQ_REWRITE_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_CHAT_MODEL: str = "llama-3.3-70b-versatile"    # main Q&A responses
+    GROQ_REWRITE_MODEL: str = "llama-3.3-70b-versatile" # query rewriting (needs Arabic context)
+    GROQ_FAST_MODEL: str = "llama-3.1-8b-instant"       # intent classification, title generation, message classification
     TOP_K: int = 5
     SIMILARITY_THRESHOLD: float = 0.4
     

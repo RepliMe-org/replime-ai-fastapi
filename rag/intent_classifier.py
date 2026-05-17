@@ -92,6 +92,6 @@ def get_intent_classifier() -> IntentClassifier:
     global _intent_classifier
     if _intent_classifier is None:
         _intent_classifier = IntentClassifier(
-            LLMClient(api_key=settings.GROQ_API_KEY, model=settings.GROQ_REWRITE_MODEL)
+            LLMClient(api_key=settings.GROQ_API_KEY, model=settings.GROQ_FAST_MODEL)
         )
     return _intent_classifier

@@ -4,7 +4,7 @@ from difflib import get_close_matches
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from core.config import settings
-from rag.llm_client import get_llm_client
+from rag.llm_client import LLMClient
 from schemas.chat import MessageClass
 from services.http_client import get_http_client, is_retryable_http_error
 
@@ -17,13 +17,23 @@ _SYSTEM_PROMPT = (
 )
 
 
+_classification_client: LLMClient | None = None
+
+
+def _get_classification_client() -> LLMClient:
+    global _classification_client
+    if _classification_client is None:
+        _classification_client = LLMClient(api_key=settings.GROQ_API_KEY, model=settings.GROQ_FAST_MODEL)
+    return _classification_client
+
+
 async def _call_classification_llm(query: str, class_names: list[str]) -> str:
     categories = ", ".join(class_names)
     messages = [
         {"role": "system", "content": _SYSTEM_PROMPT},
         {"role": "user", "content": f"Categories: {categories}\n\nMessage: {query}"},
     ]
-    result, _ = await get_llm_client().generate(messages, max_tokens=32, temperature=0.0)
+    result, _ = await _get_classification_client().generate(messages, max_tokens=32, temperature=0.0)
     return result.strip()
 
 
