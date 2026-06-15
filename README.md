@@ -1,6 +1,6 @@
 # replime-ai-fastapi
 
-The AI backend for the Replime project. Built with FastAPI, it handles YouTube video ingestion, transcript processing, vector storage via ChromaDB, and RAG-based chat using Groq LLMs.
+The AI backend for the Replime project. Built with FastAPI, it handles YouTube video ingestion, transcript processing, vector storage via Qdrant (hybrid dense + sparse search), and RAG-based chat using pluggable LLM providers (Groq, Cerebras, Gemini).
 
 ## Architecture Overview
 
@@ -12,9 +12,9 @@ schemas/         Pydantic request/response models
 core/            Config, dependencies, exceptions, logging
 ```
 
-**Ingestion flow:** YouTube transcript → chunked → embedded (sentence-transformers) → stored in ChromaDB → callback sent to Spring Boot.
+**Ingestion flow:** YouTube transcript → chunked → embedded (sentence-transformers) → stored in Qdrant (dense + BM25 sparse) → callback sent to Spring Boot.
 
-**Chat flow:** query → language detected → intent classified & query rewritten (concurrent) → embedded → retrieved from ChromaDB → prompt built → LLM generates answer → citations extracted → sources returned. Classification (message class) runs async after the response is sent.
+**Chat flow:** query → language detected → intent classified & query rewritten (concurrent) → embedded → hybrid retrieval from Qdrant → prompt built → LLM generates answer → citations extracted → sources returned. Classification (message class) runs async after the response is sent.
 
 ## Requirements
 
@@ -66,9 +66,14 @@ Edit `.env` and fill in your values:
 | `TRANSFORMERS_OFFLINE` | `1` | Set to `0` to allow HuggingFace downloads |
 | `CACHE_DIR` | `.cache/models` | Local model cache directory |
 | `HF_TOKEN` | *(optional)* | HuggingFace token for faster downloads |
-| `GROQ_API_KEY` | *(required)* | Groq API key for LLM inference |
-| `GROQ_CHAT_MODEL` | `llama-3.3-70b-versatile` | Groq model for chat answers |
-| `GROQ_REWRITE_MODEL` | `llama-3.3-70b-versatile` | Groq model for query rewriting |
+| `GROQ_API_KEY` | *(required)* | Groq API key |
+| `CEREBRAS_API_KEY` | *(required)* | Cerebras API key |
+| `GEMINI_API_KEY` | *(optional)* | Gemini API key |
+| `CHAT_MODEL` | `cerebras/llama-3.3-70b` | Answer generation (`provider/model`) |
+| `REWRITE_MODEL` | `groq/llama-3.1-8b-instant` | Query rewriting (`provider/model`) |
+| `INTENT_MODEL` | `groq/llama-3.1-8b-instant` | Intent classification (`provider/model`) |
+| `TITLE_MODEL` | `groq/llama-3.1-8b-instant` | Session title (`provider/model`) |
+| `CLASSIFICATION_MODEL` | `groq/llama-3.1-8b-instant` | Message classification (`provider/model`) |
 | `TOP_K` | `5` | Number of chunks to retrieve per query |
 | `SIMILARITY_THRESHOLD` | `0.4` | Minimum similarity score to include a chunk |
 | `SPRING_BOOT_BASE_URL` | `http://localhost:8080/api/v1` | Spring Boot backend base URL |
@@ -222,12 +227,6 @@ Runs the full RAG pipeline for a user query and returns an answer with sources.
 | Greeting | `مرحبا` | Short-circuit, no retrieval |
 | Out-of-scope | `ما هو طقس القاهرة اليوم؟` | Short-circuit, no retrieval |
 | Vague / too short | `س` | Asks a clarifying question |
-
-## Testing
-
-```bash
-pytest
-```
 
 ## Postman Collection
 

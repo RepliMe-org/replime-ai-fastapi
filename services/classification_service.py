@@ -23,7 +23,7 @@ _classification_client: LLMClient | None = None
 def _get_classification_client() -> LLMClient:
     global _classification_client
     if _classification_client is None:
-        _classification_client = LLMClient(api_key=settings.GROQ_API_KEY, model=settings.GROQ_FAST_MODEL)
+        _classification_client = LLMClient(settings.CLASSIFICATION_MODEL)
     return _classification_client
 
 

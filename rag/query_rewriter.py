@@ -60,10 +60,5 @@ _query_rewriter: QueryRewriter | None = None
 def get_query_rewriter() -> QueryRewriter:
     global _query_rewriter
     if _query_rewriter is None:
-        _query_rewriter = QueryRewriter(
-            llm_client=LLMClient(
-                api_key=settings.GROQ_API_KEY,
-                model=settings.GROQ_REWRITE_MODEL,
-            ),
-        )
+        _query_rewriter = QueryRewriter(llm_client=LLMClient(settings.REWRITE_MODEL))
     return _query_rewriter

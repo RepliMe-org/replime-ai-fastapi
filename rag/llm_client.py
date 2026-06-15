@@ -2,8 +2,8 @@ import asyncio
 import logging
 import time
 
-import groq as groq_module
-from groq import Groq
+import openai
+from openai import OpenAI
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from core.config import settings
@@ -12,10 +12,18 @@ from core.exceptions import LLMError
 logger = logging.getLogger(__name__)
 
 _RETRYABLE_EXCEPTIONS = (
-    groq_module.APIConnectionError,
-    groq_module.RateLimitError,
-    groq_module.InternalServerError,
+    openai.APIConnectionError,
+    openai.RateLimitError,
+    openai.InternalServerError,
 )
+
+
+def _parse_model_spec(model_spec: str) -> tuple[str, str]:
+    """Split a "provider/model" spec into (provider, model)."""
+    provider, _, model = model_spec.partition("/")
+    if not provider or not model:
+        raise LLMError(f"Invalid model spec {model_spec!r}; expected 'provider/model'")
+    return provider, model
 
 
 @retry(
@@ -24,8 +32,8 @@ _RETRYABLE_EXCEPTIONS = (
     wait=wait_exponential(multiplier=1, min=1, max=4),
     reraise=True,
 )
-def _call_groq(
-    client: Groq,
+def _call_llm(
+    client: OpenAI,
     model: str,
     messages: list[dict],
     max_tokens: int,
@@ -41,16 +49,19 @@ def _call_groq(
         )
     except _RETRYABLE_EXCEPTIONS:
         raise
-    except groq_module.GroqError as exc:
+    except openai.OpenAIError as exc:
         raise LLMError(str(exc)) from exc
     duration_ms = int((time.monotonic() - start) * 1000)
     return response.choices[0].message.content or "", duration_ms
 
 
 class LLMClient:
-    def __init__(self, api_key: str = settings.GROQ_API_KEY, model: str = settings.GROQ_CHAT_MODEL) -> None:
-        self._client = Groq(api_key=api_key)
-        self._model = model
+    def __init__(self, model_spec: str = settings.CHAT_MODEL) -> None:
+        self._provider, self._model = _parse_model_spec(model_spec)
+        base_url, api_key = settings.provider_credentials(self._provider)
+        # Pass a placeholder when the key is unset so construction succeeds;
+        # the provider returns a clear auth error on the first real call.
+        self._client = OpenAI(base_url=base_url, api_key=api_key or "EMPTY")
 
     async def generate(
         self,
@@ -60,11 +71,17 @@ class LLMClient:
     ) -> tuple[str, int]:
         try:
             text, duration_ms = await asyncio.to_thread(
-                _call_groq, self._client, self._model, messages, max_tokens, temperature
+                _call_llm, self._client, self._model, messages, max_tokens, temperature
             )
         except _RETRYABLE_EXCEPTIONS as exc:
             raise LLMError(str(exc)) from exc
-        logger.info("LLM generate: model=%s tokens=%s duration_ms=%d", self._model, max_tokens, duration_ms)
+        logger.info(
+            "LLM generate: provider=%s model=%s tokens=%s duration_ms=%d",
+            self._provider,
+            self._model,
+            max_tokens,
+            duration_ms,
+        )
         return text, duration_ms
 
 
@@ -74,5 +91,5 @@ _llm_client: LLMClient | None = None
 def get_llm_client() -> LLMClient:
     global _llm_client
     if _llm_client is None:
-        _llm_client = LLMClient()
+        _llm_client = LLMClient(settings.CHAT_MODEL)
     return _llm_client

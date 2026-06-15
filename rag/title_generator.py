@@ -37,7 +37,5 @@ _title_generator: TitleGenerator | None = None
 def get_title_generator() -> TitleGenerator:
     global _title_generator
     if _title_generator is None:
-        _title_generator = TitleGenerator(
-            LLMClient(api_key=settings.GROQ_API_KEY, model=settings.GROQ_FAST_MODEL)
-        )
+        _title_generator = TitleGenerator(LLMClient(settings.TITLE_MODEL))
     return _title_generator
