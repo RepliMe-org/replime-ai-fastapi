@@ -2,7 +2,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 
-# ── Inbound (FastAPI receives from Spring Boot) ────────────────────────────
+# ── Inbound (FastAPI receives from Spring Boot via HTTP) ───────────────────
 
 class VideoInput(BaseModel):
     youtube_video_id: str
@@ -14,20 +14,12 @@ class IndexVideosRequest(BaseModel):
     videos: list[VideoInput]
 
 
-# ── Outbound: 202 response (FastAPI → Spring Boot, immediately) ────────────
+# ── Outbound: 202 response (FastAPI → caller, immediately) ────────────────
 
 class IndexVideosAcceptedResponse(BaseModel):
     status: Literal["ACCEPTED"]
     chatbot_id: str
-    total: int                   # how many videos were queued
-
-
-# ── Outbound: per-video callback (FastAPI → Spring Boot, as each finishes) ─
-
-class VideoIndexedCallback(BaseModel):
-    youtube_video_id: str
-    status: Literal["COMPLETED", "FAILED", "FAILED_IP_BLOCK"]
-    error: str | None = None             # None on success
+    total: int
 
 
 class DeleteVideoRequest(BaseModel):

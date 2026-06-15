@@ -52,6 +52,18 @@ class Settings(BaseSettings):
     TOP_K: int = 5
     SIMILARITY_THRESHOLD: float = 0.4
 
+    # RabbitMQ (ingestion consumer)
+    RABBITMQ_HOST: str = "localhost"
+    RABBITMQ_USER: str = "guest"
+    RABBITMQ_PASS: str = "guest"
+
+    # Redis (idempotency store)
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+
+    # Maximum ingestion attempts before a retryable error becomes permanent
+    MAX_RETRIES: int = 3
+
     def provider_credentials(self, provider: str) -> tuple[str, str]:
         """Resolve an LLM provider name to its (base_url, api_key)."""
         base_url = _LLM_PROVIDER_BASE_URLS.get(provider)

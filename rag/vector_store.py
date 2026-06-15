@@ -64,7 +64,20 @@ class VectorStore:
     def _get_sparse_model(self) -> SparseTextEmbedding:
         if self._sparse_model is None:
             logger.info("Loading sparse model '%s'…", settings.SPARSE_MODEL_ID)
-            self._sparse_model = SparseTextEmbedding(model_name=settings.SPARSE_MODEL_ID)
+            # huggingface_hub caches HF_HUB_OFFLINE as a module-level constant at import time.
+            # TRANSFORMERS_OFFLINE=1 in .env (loaded via python-dotenv before sentence_transformers
+            # is imported) locks that constant to True, which also blocks fastembed's BM25 download.
+            # Patch the constant directly so fastembed can fetch and cache the model once.
+            import huggingface_hub.constants as _hf
+            _saved = _hf.HF_HUB_OFFLINE
+            _hf.HF_HUB_OFFLINE = False
+            try:
+                self._sparse_model = SparseTextEmbedding(
+                    model_name=settings.SPARSE_MODEL_ID,
+                    cache_dir=settings.CACHE_DIR,
+                )
+            finally:
+                _hf.HF_HUB_OFFLINE = _saved
         return self._sparse_model
 
     def upsert_chunks(

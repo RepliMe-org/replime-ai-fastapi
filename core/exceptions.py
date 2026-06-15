@@ -46,3 +46,19 @@ EmbeddingError = LLMError
 VectorStoreConnectionError = VectorStoreError
 RetrievalError = VectorStoreError
 IngestionError = VectorStoreError
+
+
+class NonRetryableIngestionError(Exception):
+    """Ingestion stage failed permanently — retrying will never help."""
+    def __init__(self, stage: str, reason: str):
+        self.stage = stage
+        self.reason = reason
+        super().__init__(f"[{stage}] {reason}")
+
+
+class RetryableIngestionError(Exception):
+    """Ingestion stage failed transiently — retrying may succeed."""
+    def __init__(self, stage: str, reason: str):
+        self.stage = stage
+        self.reason = reason
+        super().__init__(f"[{stage}] {reason}")
