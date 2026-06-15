@@ -59,9 +59,9 @@ Edit `.env` and fill in your values:
 | `APP_NAME` | `Replime AI FastAPI` | Application name |
 | `APP_VERSION` | `0.1.0` | Application version |
 | `INTERNAL_TOKEN` | *(required)* | Shared secret for internal endpoint auth |
-| `CHROMA_HOST` | `localhost` | ChromaDB host |
-| `CHROMA_PORT` | `8001` | ChromaDB port |
-| `CHROMA_PATH` | `.chroma` | ChromaDB persistent storage path |
+| `QDRANT_URL` | *(required)* | Qdrant Cloud cluster URL |
+| `QDRANT_API_KEY` | *(required)* | Qdrant Cloud API key |
+| `QDRANT_COLLECTION` | `replime_chunks` | Qdrant collection name (shared, `chatbot_id`-filtered) |
 | `EMBEDDING_MODEL_ID` | `intfloat/multilingual-e5-large` | Sentence-transformer model ID |
 | `TRANSFORMERS_OFFLINE` | `1` | Set to `0` to allow HuggingFace downloads |
 | `CACHE_DIR` | `.cache/models` | Local model cache directory |
@@ -95,7 +95,7 @@ All paths are prefixed with `/ai` (e.g. `GET /ai/health`).
 GET /ai/health
 ```
 
-Returns service status and ChromaDB connectivity.
+Returns service status and Qdrant connectivity.
 
 **Response:**
 ```json
@@ -103,7 +103,7 @@ Returns service status and ChromaDB connectivity.
   "status": "ok",
   "service": "ai-fastapi",
   "components": {
-    "chroma": { "status": "ok" }
+    "qdrant": { "status": "ok" }
   }
 }
 ```

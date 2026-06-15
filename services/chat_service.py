@@ -105,6 +105,7 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
         t0 = time.perf_counter()
         chunks = get_vector_store().search(
             request.chatbot_id,
+            embed_query,
             query_embedding,
             settings.TOP_K,
             settings.SIMILARITY_THRESHOLD,

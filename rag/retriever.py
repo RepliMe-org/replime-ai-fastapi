@@ -24,6 +24,7 @@ class Retriever:
         query_embedding = await self._embedder.embed_query(query)
         results = self._vector_store.search(
             chatbot_id=chatbot_id,
+            query_text=query,
             query_embedding=query_embedding,
             top_k=top_k,
             similarity_threshold=similarity_threshold,

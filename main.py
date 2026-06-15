@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from core.exceptions import AppError
 from core.logging import setup_logging
 from rag.embedder import get_embedder
+from rag.vector_store import get_vector_store
 from routes import api_router
 from services.http_client import close_http_client
 
@@ -19,6 +20,13 @@ async def lifespan(app: FastAPI):
     logger.info("Loading embedding model at startup...")
     get_embedder()._load()
     logger.info("Embedding model ready.")
+    try:
+        logger.info("Connecting to Qdrant and warming sparse model...")
+        get_vector_store()._get_sparse_model()
+        get_vector_store().healthcheck()
+        logger.info("Vector store ready.")
+    except Exception as exc:
+        logger.warning("Vector store warmup failed (health will report degraded): %s", exc)
     yield
     await close_http_client()
 

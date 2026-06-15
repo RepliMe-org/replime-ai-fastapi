@@ -13,10 +13,11 @@ class Settings(BaseSettings):
     # Security settings — required for internal endpoints
     INTERNAL_TOKEN: str = ""
 
-    # ChromaDB connection settings
-    CHROMA_HOST: str = "localhost"
-    CHROMA_PORT: int = 8001
-    CHROMA_PATH: str = ".chroma"
+    # Qdrant vector store settings
+    QDRANT_URL: str = ""
+    QDRANT_API_KEY: str = ""
+    QDRANT_COLLECTION: str = "replime_chunks"
+    SPARSE_MODEL_ID: str = "Qdrant/bm25"
 
     # Embedding model settings
     EMBEDDING_MODEL_ID: str = "intfloat/multilingual-e5-large"

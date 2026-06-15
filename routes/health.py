@@ -1,10 +1,9 @@
 import logging
 
-import chromadb
 from fastapi import APIRouter, Depends
 
-from core.config import settings
 from core.dependencies import verify_internal_token
+from rag.vector_store import get_vector_store
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -15,12 +14,11 @@ def health_check():
     health = {"status": "ok", "service": "ai-fastapi", "components": {}}
 
     try:
-        client = chromadb.PersistentClient(path=settings.CHROMA_PATH)
-        client.heartbeat()
-        health["components"]["chroma"] = {"status": "ok"}
+        get_vector_store().healthcheck()
+        health["components"]["qdrant"] = {"status": "ok"}
     except Exception as e:
-        logger.error("ChromaDB health check failed: %s", e)
+        logger.error("Qdrant health check failed: %s", e)
         health["status"] = "degraded"
-        health["components"]["chroma"] = {"status": "error", "reason": str(e)}
+        health["components"]["qdrant"] = {"status": "error", "reason": str(e)}
 
     return health
