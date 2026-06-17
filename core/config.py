@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     TITLE_MODEL: str = "groq/llama-3.1-8b-instant"      # session title generation
     CLASSIFICATION_MODEL: str = "groq/llama-3.1-8b-instant"  # message classification
     PROFILE_MODEL: str = "groq/llama-3.1-8b-instant"    # channel profile summarization
+    ANALYTICS_MODEL: str = "cerebras/llama-3.3-70b"     # batch analytics clustering/summary
 
     TOP_K: int = 5
     SIMILARITY_THRESHOLD: float = 0.4
