@@ -9,6 +9,10 @@ class ChatbotConfig(BaseModel):
     tone: str | None = None
     verbosity: str | None = None
     formality: str | None = None
+    # Optional influencer-provided seed used to bootstrap the channel profile
+    # for domain-aware intent before any video has been ingested.
+    description: str | None = None
+    topics: list[str] | None = None
 
 
 class ConversationMessage(BaseModel):

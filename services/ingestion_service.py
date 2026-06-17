@@ -13,6 +13,8 @@ from core.exceptions import (
 from rag.chunker import chunk_transcript
 from rag.embedder import get_embedder
 from rag.language_detector import detect_language
+from rag.profile_generator import get_profile_generator
+from rag.profile_store import get_profile_store
 from rag.transcript_loader import load_transcript
 from rag.vector_store import get_vector_store
 from services.http_client import get_http_client, is_retryable_http_error
@@ -112,6 +114,20 @@ async def run_ingestion_pipeline(
         raise RetryableIngestionError(_STAGE_INDEXING, str(exc)) from exc
     except Exception as exc:
         raise RetryableIngestionError(_STAGE_INDEXING, f"Unexpected indexing error: {exc}") from exc
+
+    # Channel profile update — best-effort. A failure here must NOT fail the ingestion,
+    # since the video is already indexed and searchable. Used by domain-aware intent.
+    try:
+        store = get_profile_store()
+        current = store.get_profile(chatbot_id)
+        updated = await get_profile_generator().update_profile(
+            current, [c["text"] for c in chunks]
+        )
+        if updated:
+            store.upsert_profile(chatbot_id, updated)
+            logger.info("profile updated chatbot_id=%s", chatbot_id)
+    except Exception as exc:
+        logger.warning("profile update skipped chatbot_id=%s: %s", chatbot_id, exc)
 
     logger.info("stage=done youtube_video_id=%s", youtube_video_id)
 

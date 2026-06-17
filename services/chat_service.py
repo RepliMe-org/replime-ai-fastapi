@@ -12,6 +12,7 @@ from rag.llm_client import get_llm_client
 from rag.prompt_builder import build_messages
 from rag.query_rewriter import get_query_rewriter
 from rag.text_normalizer import normalize_arabic
+from rag.profile_store import get_profile_store
 from rag.title_generator import get_title_generator
 from rag.vector_store import get_vector_store
 from schemas.chat import ChatProcessRequest, ChatProcessResponse, Source
@@ -22,8 +23,19 @@ _NON_CONTENT_TITLES: dict[str, dict[str, str | None]] = {
     "GREETING":    {"en": "Greeting",          "ar": "تحية ترحيب"},
     "SMALL_TALK":  {"en": "Casual Chat",        "ar": "دردشة عامة"},
     "OUT_OF_SCOPE":{"en": "Off-topic Question", "ar": "سؤال خارج النطاق"},
+    "CONTENT_GAP": {"en": "Uncovered Topic",    "ar": "موضوع غير مغطى"},
     "HARMFUL":     {"en": None,                 "ar": None},
 }
+
+
+def _seed_profile(config) -> str | None:
+    """Build a fallback profile string from the influencer's description/topics seed."""
+    parts = []
+    if config.description:
+        parts.append(config.description.strip())
+    if config.topics:
+        parts.append("Topics: " + ", ".join(config.topics))
+    return "\n".join(parts) if parts else None
 
 
 def _resolve_session_title(intent: str, language: str, generated_title: str | None) -> str | None:
@@ -71,9 +83,16 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
 
     language = detect_language(query, history=request.conversation_history)
 
+    # Fetch the channel profile (off-thread — Qdrant call) so intent classification can
+    # distinguish adjacent-but-uncovered questions (CONTENT_GAP) from off-topic ones.
+    # Before any video is ingested, fall back to the influencer-provided seed.
+    profile = await asyncio.to_thread(get_profile_store().get_profile, request.chatbot_id)
+    if not profile:
+        profile = _seed_profile(request.config)
+
     # Classify intent, rewrite query, and (if first message) generate title concurrently
     tasks = [
-        get_intent_classifier().classify(query),
+        get_intent_classifier().classify(query, profile=profile),
         get_query_rewriter().rewrite(query, request.conversation_history, language=language),
     ]
     if request.first_message:

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     QDRANT_URL: str = ""
     QDRANT_API_KEY: str = ""
     QDRANT_COLLECTION: str = "replime_chunks"
+    CHATBOT_META_COLLECTION: str = "chatbot_meta"
     SPARSE_MODEL_ID: str = "Qdrant/bm25"
 
     # Embedding model settings
@@ -48,6 +49,7 @@ class Settings(BaseSettings):
     INTENT_MODEL: str = "groq/llama-3.1-8b-instant"     # intent classification
     TITLE_MODEL: str = "groq/llama-3.1-8b-instant"      # session title generation
     CLASSIFICATION_MODEL: str = "groq/llama-3.1-8b-instant"  # message classification
+    PROFILE_MODEL: str = "groq/llama-3.1-8b-instant"    # channel profile summarization
 
     TOP_K: int = 5
     SIMILARITY_THRESHOLD: float = 0.4
