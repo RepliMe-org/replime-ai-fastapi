@@ -22,6 +22,7 @@ class VideoIndexWorker:
             yt_video_id = payload["youtubeVideoId"]
             idempotency_key = payload["idempotencyKey"]
             attempt = payload.get("attemptNumber", 1)
+            start_stage = payload.get("startFromStage", "TRANSCRIPT_EXTRACTION")
 
             # videoId is optional — used only for logging (the webhook is keyed by youtubeVideoId).
             video_id = payload.get("videoId")
@@ -30,11 +31,11 @@ class VideoIndexWorker:
             chatbot_id = payload.get("chatbotId") or str(payload["trainingSourceId"])
             video_title = payload.get("videoTitle")
 
-            # Note: startFromStage is intentionally not consumed — every attempt re-runs the
-            # full pipeline (no intermediate results are cached between attempts).
+            # startFromStage is accepted for diagnostics but NOT acted upon: intermediate
+            # results are not cached between attempts, so every attempt re-runs all stages.
             logger.info(
-                "job received videoId=%s youtubeVideoId=%s chatbotId=%s attempt=%s",
-                video_id, yt_video_id, chatbot_id, attempt,
+                "job received videoId=%s youtubeVideoId=%s chatbotId=%s attempt=%s startFromStage=%s",
+                video_id, yt_video_id, chatbot_id, attempt, start_stage,
             )
 
             # Idempotency check — skip if this exact attempt was already indexed
