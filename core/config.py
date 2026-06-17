@@ -44,13 +44,13 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
 
     # Per-task model selection — value format: "provider/model"
-    CHAT_MODEL: str = "cerebras/llama-3.3-70b"          # main Q&A responses
+    CHAT_MODEL: str = "cerebras/gpt-oss-120b"           # main Q&A responses
     REWRITE_MODEL: str = "groq/llama-3.1-8b-instant"    # query rewriting (needs Arabic context)
     INTENT_MODEL: str = "groq/llama-3.1-8b-instant"     # intent classification
     TITLE_MODEL: str = "groq/llama-3.1-8b-instant"      # session title generation
     CLASSIFICATION_MODEL: str = "groq/llama-3.1-8b-instant"  # message classification
     PROFILE_MODEL: str = "groq/llama-3.1-8b-instant"    # channel profile summarization
-    ANALYTICS_MODEL: str = "cerebras/llama-3.3-70b"     # batch analytics clustering/summary
+    ANALYTICS_MODEL: str = "cerebras/gpt-oss-120b"      # batch analytics clustering/summary
 
     TOP_K: int = 5
     SIMILARITY_THRESHOLD: float = 0.4
