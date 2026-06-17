@@ -6,6 +6,7 @@ from fastembed import SparseTextEmbedding
 
 from core.config import settings
 from core.exceptions import VectorStoreError
+from rag.mmr import mmr_select
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +144,10 @@ class VectorStore:
                     )
                 ]
             )
+            # With MMR we fetch a larger pool (with dense vectors) and reselect down to
+            # top_k for diversity; otherwise we let Qdrant return top_k directly.
+            use_mmr = settings.USE_MMR
+            fetch_limit = max(settings.MMR_CANDIDATE_K, top_k) if use_mmr else top_k
             response = client.query_points(
                 collection_name=self._collection,
                 prefetch=[
@@ -164,11 +169,28 @@ class VectorStore:
                     ),
                 ],
                 query=models.FusionQuery(fusion=models.Fusion.RRF),
-                limit=top_k,
+                limit=fetch_limit,
                 with_payload=True,
+                with_vectors=[_DENSE_NAME] if use_mmr else False,
             )
+
+            points = response.points
+            if use_mmr and len(points) > top_k:
+                candidate_vecs = [self._dense_of(p) for p in points]
+                valid = [i for i, v in enumerate(candidate_vecs) if v is not None]
+                if valid:
+                    selected = mmr_select(
+                        query_embedding,
+                        [candidate_vecs[i] for i in valid],
+                        k=top_k,
+                        lambda_mult=settings.MMR_LAMBDA,
+                    )
+                    points = [points[valid[i]] for i in selected]
+                else:
+                    points = points[:top_k]
+
             output = []
-            for point in response.points:
+            for point in points:
                 payload = point.payload or {}
                 output.append(
                     {
@@ -182,6 +204,14 @@ class VectorStore:
             return output
         except Exception as exc:
             raise VectorStoreError(f"search failed: {exc}") from exc
+
+    @staticmethod
+    def _dense_of(point) -> list[float] | None:
+        """Extract the dense named vector from a scored point, if present."""
+        vec = getattr(point, "vector", None)
+        if isinstance(vec, dict):
+            return vec.get(_DENSE_NAME)
+        return vec  # already a bare list, or None
 
     def delete_by_video_id(self, chatbot_id: str, youtube_video_id: str) -> int:
         try:

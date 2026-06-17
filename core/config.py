@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     TOP_K: int = 5
     SIMILARITY_THRESHOLD: float = 0.4
 
+    # MMR (Maximal Marginal Relevance) — diversity-aware reranking of retrieved chunks
+    USE_MMR: bool = True
+    MMR_LAMBDA: float = 0.6          # 1.0 = pure relevance, 0.0 = pure diversity
+    MMR_CANDIDATE_K: int = 20        # candidate pool size fetched before MMR selects top_k
+
     # RabbitMQ (ingestion consumer)
     RABBITMQ_HOST: str = "localhost"
     RABBITMQ_USER: str = "guest"
