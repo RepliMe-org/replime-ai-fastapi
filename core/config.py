@@ -62,8 +62,8 @@ class Settings(BaseSettings):
 
     # RabbitMQ (ingestion consumer)
     RABBITMQ_HOST: str = "localhost"
-    RABBITMQ_USER: str = "guest"
-    RABBITMQ_PASS: str = "guest"
+    RABBITMQ_USER: str = "admin"
+    RABBITMQ_PASS: str = "admin"
 
     # Redis (idempotency store)
     REDIS_HOST: str = "localhost"
