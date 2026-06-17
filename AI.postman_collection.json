@@ -48,7 +48,7 @@
             { "key": "content-type", "value": "application/json" }
           ],
           "cookie": [],
-          "body": "{\n    \"status\": \"ok\",\n    \"service\": \"ai-fastapi\",\n    \"components\": {\n        \"chroma\": {\n            \"status\": \"ok\"\n        }\n    }\n}"
+          "body": "{\n    \"status\": \"ok\",\n    \"service\": \"ai-fastapi\",\n    \"components\": {\n        \"qdrant\": {\n            \"status\": \"ok\"\n        }\n    }\n}"
         }
       ]
     },
@@ -262,6 +262,52 @@
           "header": [{ "key": "content-type", "value": "application/json" }],
           "cookie": [],
           "body": "{\n    \"answer\": \"هل يمكنك توضيح سؤالك أكثر؟ ما الموضوع الذي تودّ الاستفسار عنه؟\",\n    \"session_title\": null,\n    \"sources\": []\n}"
+        }
+      ]
+    },
+    {
+      "name": "Analytics Process",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"chatbotId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"questions\": [\n    \"ما أسباب التسويف وكيف نتغلب عليه؟\",\n    \"كيف أبني عادة القراءة اليومية؟\",\n    \"ما هو الفارق البسيط؟\"\n  ],\n  \"contentGaps\": [\n    { \"query\": \"كيف أستثمر أموالي في البورصة؟\", \"language\": \"ar\" }\n  ],\n  \"citedVideos\": [\n    { \"youtubeVideoId\": \"biCRsdst958\", \"videoTitle\": \"علي وكتاب - الفارق البسيط\", \"citationCount\": 5 },\n    { \"youtubeVideoId\": \"22CW76-SARA\", \"videoTitle\": \"علي وكتاب - حل لغز التسويف\", \"citationCount\": 3 }\n  ]\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{api}}/analytics/process",
+          "host": ["{{api}}"],
+          "path": ["analytics", "process"]
+        }
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatbotId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"questions\": [\n    \"ما أسباب التسويف وكيف نتغلب عليه؟\",\n    \"كيف أبني عادة القراءة اليومية؟\",\n    \"ما هو الفارق البسيط؟\"\n  ],\n  \"contentGaps\": [\n    { \"query\": \"كيف أستثمر أموالي في البورصة؟\", \"language\": \"ar\" }\n  ],\n  \"citedVideos\": [\n    { \"youtubeVideoId\": \"biCRsdst958\", \"videoTitle\": \"علي وكتاب - الفارق البسيط\", \"citationCount\": 5 },\n    { \"youtubeVideoId\": \"22CW76-SARA\", \"videoTitle\": \"علي وكتاب - حل لغز التسويف\", \"citationCount\": 3 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{api}}/analytics/process",
+              "host": ["{{api}}"],
+              "path": ["analytics", "process"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "content-type", "value": "application/json" }],
+          "cookie": [],
+          "body": "{\n    \"mostAskedClusters\": [\n        { \"theme\": \"التسويف\", \"count\": 1, \"exampleQuestions\": [\"ما أسباب التسويف وكيف نتغلب عليه؟\"] }\n    ],\n    \"contentGaps\": [\n        { \"topic\": \"الاستثمار المالي\", \"frequency\": 1, \"sampleQuestions\": [\"كيف أستثمر أموالي في البورصة؟\"] }\n    ],\n    \"mostCitedVideos\": [\n        { \"youtubeVideoId\": \"biCRsdst958\", \"videoTitle\": \"علي وكتاب - الفارق البسيط\", \"citationCount\": 5 }\n    ],\n    \"executiveSummary\": \"يركز المحتوى على التطوير الذاتي والتغلب على التسويف وبناء العادات الإيجابية.\",\n    \"contentOpportunities\": [\"إنشاء محتوى عن أساسيات الاستثمار المالي\"]\n}"
         }
       ]
     }
