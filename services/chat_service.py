@@ -3,6 +3,8 @@ import logging
 import re
 import time
 
+from fastapi import BackgroundTasks
+
 from core.config import settings
 from core.exceptions import EmbeddingError, LLMError, VectorStoreError
 from rag.embedder import get_embedder
@@ -16,6 +18,7 @@ from rag.profile_store import get_profile_store
 from rag.title_generator import get_title_generator
 from rag.vector_store import get_vector_store
 from schemas.chat import ChatProcessRequest, ChatProcessResponse, Source
+from services.analytics_service import report_content_gap, report_video_cited
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +81,10 @@ def _extract_cited_chunks(answer: str, chunks: list[dict]) -> tuple[list[dict], 
     return cited, clean_answer
 
 
-async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
+async def process_chat(
+    request: ChatProcessRequest,
+    background_tasks: BackgroundTasks | None = None,
+) -> ChatProcessResponse:
     query = request.query.strip()
 
     language = detect_language(query, history=request.conversation_history)
@@ -108,6 +114,10 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
 
     # Short-circuit for non-content intents
     if intent != "CONTENT_QUESTION":
+        if intent == "CONTENT_GAP" and background_tasks is not None:
+            background_tasks.add_task(
+                report_content_gap, request.chatbot_id, query, language
+            )
         answer = get_hardcoded_response(intent, language, request.config.chatbot_name)
         return ChatProcessResponse(answer=answer, session_title=session_title, sources=[])
 
@@ -135,6 +145,11 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
     logger.info("step=retrieve_done chunks=%d retrieval_ms=%d", len(chunks), retrieval_ms)
 
     if not chunks:
+        # An in-domain question we have no content for is the strongest content-gap signal.
+        if background_tasks is not None:
+            background_tasks.add_task(
+                report_content_gap, request.chatbot_id, query, language
+            )
         template = _FALLBACK_TEMPLATES.get(language, _FALLBACK_TEMPLATES["en"])
         return ChatProcessResponse(
             answer=template.format(chatbot_name=request.config.chatbot_name),
@@ -171,5 +186,16 @@ async def process_chat(request: ChatProcessRequest) -> ChatProcessResponse:
                 youtube_url=f"https://youtube.com/watch?v={chunk['youtube_video_id']}&t={timestamp_seconds}s",
             )
         )
+
+    # Analytics: record each cited video (one event per unique source).
+    if background_tasks is not None:
+        for src in sources:
+            background_tasks.add_task(
+                report_video_cited,
+                request.chatbot_id,
+                src.video_id,
+                src.video_title,
+                query,
+            )
 
     return ChatProcessResponse(answer=answer, session_title=session_title, sources=sources)

@@ -13,7 +13,7 @@ async def chat_process(
     request: ChatProcessRequest,
     background_tasks: BackgroundTasks,
 ) -> ChatProcessResponse:
-    response = await process_chat(request)
+    response = await process_chat(request, background_tasks)
 
     if request.message_classes:
         background_tasks.add_task(
