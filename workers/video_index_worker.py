@@ -25,14 +25,14 @@ class VideoIndexWorker:
             attempt = payload.get("attemptNumber", 1)
             start_stage = payload.get("startFromStage", "TRANSCRIPT_EXTRACTION")
 
-            # trainingSourceId is used as the Qdrant tenant key (chatbot_id) because
-            # the message does not include chatbotId. Confirm with Spring Boot teammate
-            # whether chatbotId should be added to the message for accurate scoping.
-            chatbot_id = str(payload["trainingSourceId"])
+            # chatbotId is the Qdrant tenant key. Fall back to trainingSourceId only for
+            # backward compatibility with messages published before Spring Boot added it.
+            chatbot_id = payload.get("chatbotId") or str(payload["trainingSourceId"])
+            video_title = payload.get("videoTitle")
 
             logger.info(
-                "job received videoId=%s youtubeVideoId=%s attempt=%s startFromStage=%s",
-                video_id, yt_video_id, attempt, start_stage,
+                "job received videoId=%s youtubeVideoId=%s chatbotId=%s attempt=%s startFromStage=%s",
+                video_id, yt_video_id, chatbot_id, attempt, start_stage,
             )
             if start_stage != "TRANSCRIPT_EXTRACTION":
                 # Intermediate results are not cached between attempts, so we always
@@ -67,7 +67,7 @@ class VideoIndexWorker:
 
             # Run pipeline
             try:
-                await run_ingestion_pipeline(chatbot_id, yt_video_id, video_title=None)
+                await run_ingestion_pipeline(chatbot_id, yt_video_id, video_title=video_title)
 
                 # Mark idempotency key before sending callback so a webhook timeout
                 # doesn't lead to duplicate reprocessing on the next message delivery.
