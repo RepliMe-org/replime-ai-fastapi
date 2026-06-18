@@ -41,26 +41,27 @@ class VectorStore:
         return self._client
 
     def _ensure_collection(self, client: QdrantClient) -> None:
-        if client.collection_exists(self._collection):
-            return
-        client.create_collection(
-            collection_name=self._collection,
-            vectors_config={
-                _DENSE_NAME: models.VectorParams(
-                    size=_DENSE_SIZE, distance=models.Distance.COSINE
-                )
-            },
-            sparse_vectors_config={
-                _SPARSE_NAME: models.SparseVectorParams(modifier=models.Modifier.IDF)
-            },
-        )
-        # Index the payload field we filter on for fast multi-tenant lookups.
-        client.create_payload_index(
-            collection_name=self._collection,
-            field_name="chatbot_id",
-            field_schema=models.PayloadSchemaType.KEYWORD,
-        )
-        logger.info("Created Qdrant collection '%s'", self._collection)
+        if not client.collection_exists(self._collection):
+            client.create_collection(
+                collection_name=self._collection,
+                vectors_config={
+                    _DENSE_NAME: models.VectorParams(
+                        size=_DENSE_SIZE, distance=models.Distance.COSINE
+                    )
+                },
+                sparse_vectors_config={
+                    _SPARSE_NAME: models.SparseVectorParams(modifier=models.Modifier.IDF)
+                },
+            )
+            logger.info("Created Qdrant collection '%s'", self._collection)
+        # Create indexes unconditionally — Qdrant ignores duplicates, so this is
+        # safe to call on an existing collection (e.g. after adding a new indexed field).
+        for field in ("chatbot_id", "youtube_video_id"):
+            client.create_payload_index(
+                collection_name=self._collection,
+                field_name=field,
+                field_schema=models.PayloadSchemaType.KEYWORD,
+            )
 
     def _get_sparse_model(self) -> SparseTextEmbedding:
         if self._sparse_model is None:
