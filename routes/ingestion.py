@@ -7,6 +7,8 @@ from schemas.ingestion import (
     DeleteVideoResponse,
     IndexVideosAcceptedResponse,
     IndexVideosRequest,
+    ListVideosResponse,
+    VideoSummary,
 )
 from services.ingestion_service import run_ingestion
 
@@ -42,3 +44,20 @@ def delete_video(
 ) -> DeleteVideoResponse:
     count = get_vector_store().delete_by_video_id(request.chatbot_id, request.youtube_video_id)
     return DeleteVideoResponse(youtube_video_id=request.youtube_video_id, deleted_chunks=count)
+
+
+@router.get("/videos", response_model=ListVideosResponse)
+def list_videos() -> ListVideosResponse:
+    grouped = get_vector_store().list_videos()
+    total_videos = sum(len(vids) for vids in grouped.values())
+    total_chunks = sum(v["chunk_count"] for vids in grouped.values() for v in vids)
+    chatbots = {
+        cid: [VideoSummary(**v) for v in vids]
+        for cid, vids in grouped.items()
+    }
+    return ListVideosResponse(
+        chatbots=chatbots,
+        total_chatbots=len(chatbots),
+        total_videos=total_videos,
+        total_chunks=total_chunks,
+    )

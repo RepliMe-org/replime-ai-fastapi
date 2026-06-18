@@ -150,6 +150,46 @@
       ]
     },
     {
+      "name": "List Videos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Internal-Token",
+            "value": "{{internal_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{api}}/videos",
+          "host": ["{{api}}"],
+          "path": ["videos"]
+        }
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Internal-Token", "value": "{{internal_token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{api}}/videos",
+              "host": ["{{api}}"],
+              "path": ["videos"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "content-type", "value": "application/json" }],
+          "cookie": [],
+          "body": "{\n    \"chatbots\": {\n        \"ali_muhammad_ali\": [\n            {\n                \"youtube_video_id\": \"biCRsdst958\",\n                \"video_title\": \"علي وكتاب - الفارق البسيط The Slight Edge\",\n                \"chunk_count\": 42\n            },\n            {\n                \"youtube_video_id\": \"22CW76-SARA\",\n                \"video_title\": \"علي وكتاب - حل لغز التسويف Solving The Procrastination Puzzle\",\n                \"chunk_count\": 38\n            }\n        ]\n    },\n    \"total_chatbots\": 1,\n    \"total_videos\": 2,\n    \"total_chunks\": 80\n}"
+        }
+      ]
+    },
+    {
       "name": "Chat",
       "request": {
         "method": "POST",

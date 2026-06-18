@@ -30,3 +30,16 @@ class DeleteVideoRequest(BaseModel):
 class DeleteVideoResponse(BaseModel):
     youtube_video_id: str
     deleted_chunks: int
+
+
+class VideoSummary(BaseModel):
+    youtube_video_id: str
+    video_title: str
+    chunk_count: int
+
+
+class ListVideosResponse(BaseModel):
+    chatbots: dict[str, list[VideoSummary]]
+    total_chatbots: int
+    total_videos: int
+    total_chunks: int

@@ -242,6 +242,40 @@ class VectorStore:
         except Exception as exc:
             raise VectorStoreError(f"delete_by_video_id failed: {exc}") from exc
 
+    def list_videos(self) -> dict[str, list[dict]]:
+        try:
+            client = self._get_client()
+            grouped: dict[str, dict[str, dict]] = {}
+            offset = None
+            while True:
+                points, offset = client.scroll(
+                    collection_name=self._collection,
+                    with_payload=["chatbot_id", "youtube_video_id", "video_title"],
+                    with_vectors=False,
+                    limit=1000,
+                    offset=offset,
+                )
+                for point in points:
+                    payload = point.payload or {}
+                    chatbot_id = payload.get("chatbot_id", "unknown")
+                    video_id = payload.get("youtube_video_id", "unknown")
+                    title = payload.get("video_title", "")
+                    chatbot_videos = grouped.setdefault(chatbot_id, {})
+                    if video_id not in chatbot_videos:
+                        chatbot_videos[video_id] = {"video_title": title, "chunk_count": 0}
+                    chatbot_videos[video_id]["chunk_count"] += 1
+                if offset is None:
+                    break
+            return {
+                chatbot_id: [
+                    {"youtube_video_id": vid_id, "video_title": info["video_title"], "chunk_count": info["chunk_count"]}
+                    for vid_id, info in videos.items()
+                ]
+                for chatbot_id, videos in grouped.items()
+            }
+        except Exception as exc:
+            raise VectorStoreError(f"list_videos failed: {exc}") from exc
+
     def healthcheck(self) -> None:
         self._get_client().get_collections()
 
