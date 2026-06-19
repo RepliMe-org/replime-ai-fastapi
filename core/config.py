@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
 
     # Security settings — required for internal endpoints
-    INTERNAL_TOKEN: str = ""
+    X_INTERNAL_TOKEN: str = ""
 
     # Qdrant vector store settings
     QDRANT_URL: str = ""
@@ -92,13 +92,13 @@ class Settings(BaseSettings):
     SPRING_BOOT_BASE_URL: str = "http://localhost:8080/api/v1"
 
     def validate_internal_token(self) -> None:
-        """Warn if INTERNAL_TOKEN is not set in production."""
-        if not self.INTERNAL_TOKEN:
+        """Warn if X_INTERNAL_TOKEN is not set in production."""
+        if not self.X_INTERNAL_TOKEN:
             import sys
             if os.getenv("ENVIRONMENT") == "production":
-                raise ValueError("INTERNAL_TOKEN must be set in production environment")
+                raise ValueError("X_INTERNAL_TOKEN must be set in production environment")
             else:
-                print("[WARNING] INTERNAL_TOKEN not set — internal endpoints will be protected by empty token", file=sys.stderr)
+                print("[WARNING] X_INTERNAL_TOKEN not set — internal endpoints will be protected by empty token", file=sys.stderr)
 
 
 settings = Settings()

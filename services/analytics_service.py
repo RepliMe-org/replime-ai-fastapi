@@ -37,7 +37,7 @@ async def _send_event(payload: dict) -> None:
     response = await get_http_client().post(
         url,
         json=payload,
-        headers={"X-Internal-Token": settings.INTERNAL_TOKEN},
+        headers={"X-INTERNAL-TOKEN": settings.X_INTERNAL_TOKEN},
     )
     response.raise_for_status()
 

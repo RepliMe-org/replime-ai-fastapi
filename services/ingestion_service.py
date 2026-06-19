@@ -40,7 +40,7 @@ async def _do_callback(youtube_video_id: str, payload: dict) -> None:
     response = await get_http_client().patch(
         url,
         json=payload,
-        headers={"X-Internal-Token": settings.INTERNAL_TOKEN},
+        headers={"X-INTERNAL-TOKEN": settings.X_INTERNAL_TOKEN},
     )
     response.raise_for_status()
 

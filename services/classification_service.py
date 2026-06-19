@@ -63,7 +63,7 @@ async def _send_classification(message_id: int, class_id: int, class_name: str) 
     response = await get_http_client().put(
         url,
         json={"class_id": class_id, "class_name": class_name},
-        headers={"X-Internal-Token": settings.INTERNAL_TOKEN},
+        headers={"X-INTERNAL-TOKEN": settings.X_INTERNAL_TOKEN},
     )
     response.raise_for_status()
 
