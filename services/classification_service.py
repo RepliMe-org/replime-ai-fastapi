@@ -58,11 +58,11 @@ def _match_class(llm_output: str, message_classes: list[MessageClass]) -> Messag
     wait=wait_exponential(multiplier=1, min=1, max=2),
     reraise=True,
 )
-async def _send_classification(message_id: int, class_id: int, class_name: str) -> None:
+async def _send_classification(message_id: int, class_id: int) -> None:
     url = f"{settings.SPRING_BOOT_BASE_URL}/internal/messages/{message_id}"
     response = await get_http_client().put(
         url,
-        json={"class_id": class_id, "class_name": class_name},
+        json=class_id,
         headers={"X-INTERNAL-TOKEN": settings.X_INTERNAL_TOKEN},
     )
     response.raise_for_status()
@@ -90,6 +90,6 @@ async def classify_and_report(
             matched.id,
             matched.name,
         )
-        await _send_classification(message_id, matched.id, matched.name)
+        await _send_classification(message_id, matched.id)
     except Exception as exc:
         logger.exception("classify_and_report failed for message_id=%d: %s", message_id, exc)
