@@ -11,6 +11,8 @@ class VideoInput(BaseModel):
 
 class IndexVideosRequest(BaseModel):
     chatbot_id: str
+    # Current channel description (Spring Boot-owned); the AI updates it from the video content.
+    description: str | None = None
     videos: list[VideoInput]
 
 

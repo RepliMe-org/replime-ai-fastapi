@@ -13,8 +13,7 @@ from core.exceptions import (
 from rag.chunker import chunk_transcript
 from rag.embedder import get_embedder
 from rag.language_detector import detect_language
-from rag.profile_generator import get_profile_generator
-from rag.profile_store import get_profile_store
+from rag.description_generator import get_description_generator
 from rag.transcript_loader import load_transcript
 from rag.vector_store import get_vector_store
 from services.http_client import get_http_client, is_retryable_http_error
@@ -63,12 +62,16 @@ async def run_ingestion_pipeline(
     chatbot_id: str,
     youtube_video_id: str,
     video_title: str | None,
-) -> None:
+    description: str | None = None,
+) -> str | None:
     """Run all ingestion stages in order.
 
     Raises NonRetryableIngestionError for permanent failures (no transcript,
     private video) and RetryableIngestionError for transient ones. The caller
     is responsible for sending the webhook callback.
+
+    Returns the AI-updated channel description (or the unchanged input if the
+    best-effort update fails) so the caller can report it back to Spring Boot.
     """
     title = video_title or youtube_video_id
 
@@ -115,21 +118,22 @@ async def run_ingestion_pipeline(
     except Exception as exc:
         raise RetryableIngestionError(_STAGE_INDEXING, f"Unexpected indexing error: {exc}") from exc
 
-    # Channel profile update — best-effort. A failure here must NOT fail the ingestion,
-    # since the video is already indexed and searchable. Used by domain-aware intent.
+    # Channel description update — best-effort. A failure here must NOT fail the ingestion,
+    # since the video is already indexed and searchable. The updated description is returned
+    # to the caller, which reports it back to Spring Boot (the owner of the description).
+    updated_description = description
     try:
-        store = get_profile_store()
-        current = store.get_profile(chatbot_id)
-        updated = await get_profile_generator().update_profile(
-            current, [c["text"] for c in chunks]
+        generated = await get_description_generator().update_description(
+            description, [c["text"] for c in chunks]
         )
-        if updated:
-            store.upsert_profile(chatbot_id, updated)
-            logger.info("profile updated chatbot_id=%s", chatbot_id)
+        if generated:
+            updated_description = generated
+            logger.info("description updated chatbot_id=%s", chatbot_id)
     except Exception as exc:
-        logger.warning("profile update skipped chatbot_id=%s: %s", chatbot_id, exc)
+        logger.warning("description update skipped chatbot_id=%s: %s", chatbot_id, exc)
 
     logger.info("stage=done youtube_video_id=%s", youtube_video_id)
+    return updated_description
 
 
 # ── HTTP-triggered ingestion (POST /ai/ingest/videos) ─────────────────────────
@@ -138,16 +142,20 @@ async def run_ingestion(
     chatbot_id: str,
     youtube_video_id: str,
     video_title: str | None = None,
+    description: str | None = None,
 ) -> None:
     """Single-attempt ingestion triggered via the HTTP endpoint (attempt=1).
 
     Runs the pipeline and sends the webhook callback regardless of outcome.
     """
     try:
-        await run_ingestion_pipeline(chatbot_id, youtube_video_id, video_title)
+        updated_description = await run_ingestion_pipeline(
+            chatbot_id, youtube_video_id, video_title, description
+        )
         await send_ingestion_callback(youtube_video_id, {
             "status": "COMPLETED",
             "attemptsMade": 1,
+            "description": updated_description,
         })
     except NonRetryableIngestionError as exc:
         logger.error(

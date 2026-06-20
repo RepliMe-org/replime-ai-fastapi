@@ -6,12 +6,12 @@ from rag.llm_client import LLMClient
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = (
-    "You maintain a short profile describing what topics a content creator's channel covers. "
-    "You are given the CURRENT profile (may be empty) and a SAMPLE of text from a newly added "
-    "video. Produce an UPDATED profile that merges the new video's topics into the existing one.\n"
+    "You maintain a short description of what topics a content creator's channel covers. "
+    "You are given the CURRENT description (may be empty) and a SAMPLE of text from a newly added "
+    "video. Produce an UPDATED description that merges the new video's topics into the existing one.\n"
     "Rules:\n"
     "- Output ONE concise paragraph (max 120 words) listing the themes/subjects the channel covers.\n"
-    "- Write in the same language as the content (Arabic content → Arabic profile).\n"
+    "- Write in the same language as the content (Arabic content → Arabic description).\n"
     "- Do not invent topics not present in the text. Do not list video titles.\n"
     "- Keep prior topics; only add genuinely new ones. Return only the paragraph, nothing else."
 )
@@ -20,14 +20,14 @@ _SYSTEM_PROMPT = (
 _SAMPLE_CHAR_LIMIT = 4000
 
 
-class ProfileGenerator:
+class DescriptionGenerator:
     def __init__(self, llm_client: LLMClient) -> None:
         self._llm_client = llm_client
 
-    async def update_profile(self, current_profile: str | None, new_chunks: list[str]) -> str:
+    async def update_description(self, current_description: str | None, new_chunks: list[str]) -> str:
         sample = " ".join(new_chunks)[:_SAMPLE_CHAR_LIMIT]
         user_content = (
-            f"CURRENT profile:\n{current_profile or '(empty)'}\n\n"
+            f"CURRENT description:\n{current_description or '(empty)'}\n\n"
             f"SAMPLE from new video:\n{sample}"
         )
         messages = [
@@ -38,11 +38,11 @@ class ProfileGenerator:
         return result.strip()
 
 
-_profile_generator: ProfileGenerator | None = None
+_description_generator: DescriptionGenerator | None = None
 
 
-def get_profile_generator() -> ProfileGenerator:
-    global _profile_generator
-    if _profile_generator is None:
-        _profile_generator = ProfileGenerator(LLMClient(settings.PROFILE_MODEL))
-    return _profile_generator
+def get_description_generator() -> DescriptionGenerator:
+    global _description_generator
+    if _description_generator is None:
+        _description_generator = DescriptionGenerator(LLMClient(settings.DESCRIPTION_MODEL))
+    return _description_generator

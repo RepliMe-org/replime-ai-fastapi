@@ -30,6 +30,7 @@ class VideoIndexWorker:
             # backward compatibility with messages published before Spring Boot added it.
             chatbot_id = payload.get("chatbotId") or str(payload["trainingSourceId"])
             video_title = payload.get("videoTitle")
+            description = payload.get("description")
 
             # startFromStage is accepted for diagnostics but NOT acted upon: intermediate
             # results are not cached between attempts, so every attempt re-runs all stages.
@@ -61,7 +62,9 @@ class VideoIndexWorker:
 
             # Run pipeline
             try:
-                await run_ingestion_pipeline(chatbot_id, yt_video_id, video_title=video_title)
+                updated_description = await run_ingestion_pipeline(
+                    chatbot_id, yt_video_id, video_title=video_title, description=description
+                )
 
                 # Mark idempotency key before sending callback so a webhook timeout
                 # doesn't lead to duplicate reprocessing on the next message delivery.
@@ -74,6 +77,7 @@ class VideoIndexWorker:
                 await send_ingestion_callback(yt_video_id, {
                     "status": "COMPLETED",
                     "attemptsMade": attempt,
+                    "description": updated_description,
                 })
 
             except NonRetryableIngestionError as exc:
