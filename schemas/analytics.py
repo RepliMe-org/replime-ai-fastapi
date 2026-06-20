@@ -9,22 +9,18 @@ class _CamelModel(BaseModel):
 
 # ── Inbound: Spring Boot → FastAPI (POST /ai/analytics/process) ────────────────
 
-class CitedVideoInput(_CamelModel):
-    youtube_video_id: str
-    video_title: str
-    citation_count: int = 1  # Spring Boot may pre-aggregate; raw events default to 1
-
-
-class ContentGapInput(_CamelModel):
-    query: str
-    language: str | None = None
+class QuestionInput(_CamelModel):
+    text: str
+    # Whether the answer to this question cited at least one video. Unanswered
+    # CONTENT_QUESTIONs are the content-gap signal.
+    answered_with_sources: bool = True
 
 
 class AnalyticsRequest(_CamelModel):
     chatbot_id: str
-    questions: list[str] = Field(default_factory=list)
-    content_gaps: list[ContentGapInput] = Field(default_factory=list)
-    cited_videos: list[CitedVideoInput] = Field(default_factory=list)
+    # Channel description (owned by Spring Boot) — the "what the channel covers" reference.
+    description: str | None = None
+    questions: list[QuestionInput] = Field(default_factory=list)
 
 
 # ── Outbound: FastAPI → Spring Boot → frontend ────────────────────────────────
@@ -41,15 +37,7 @@ class ContentGapCluster(_CamelModel):
     sample_questions: list[str] = Field(default_factory=list)
 
 
-class CitedVideoStat(_CamelModel):
-    youtube_video_id: str
-    video_title: str
-    citation_count: int
-
-
 class AnalyticsResponse(_CamelModel):
     most_asked_clusters: list[QuestionCluster] = Field(default_factory=list)
     content_gaps: list[ContentGapCluster] = Field(default_factory=list)
-    most_cited_videos: list[CitedVideoStat] = Field(default_factory=list)
     executive_summary: str = ""
-    content_opportunities: list[str] = Field(default_factory=list)
