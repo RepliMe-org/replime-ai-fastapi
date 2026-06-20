@@ -14,11 +14,9 @@ from rag.llm_client import get_llm_client
 from rag.prompt_builder import build_messages
 from rag.query_rewriter import get_query_rewriter
 from rag.text_normalizer import normalize_arabic
-from rag.profile_store import get_profile_store
 from rag.title_generator import get_title_generator
 from rag.vector_store import get_vector_store
 from schemas.chat import ChatProcessRequest, ChatProcessResponse, Source
-from services.analytics_service import report_content_gap, report_video_cited
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +24,12 @@ _NON_CONTENT_TITLES: dict[str, dict[str, str | None]] = {
     "GREETING":    {"en": "Greeting",          "ar": "تحية ترحيب"},
     "SMALL_TALK":  {"en": "Casual Chat",        "ar": "دردشة عامة"},
     "OUT_OF_SCOPE":{"en": "Off-topic Question", "ar": "سؤال خارج النطاق"},
-    "CONTENT_GAP": {"en": "Uncovered Topic",    "ar": "موضوع غير مغطى"},
     "HARMFUL":     {"en": None,                 "ar": None},
 }
 
 
-def _seed_profile(config) -> str | None:
-    """Build a fallback profile string from the influencer's description/topics seed."""
+def _seed_description(config) -> str | None:
+    """Build the channel description string from the influencer's description/topics."""
     parts = []
     if config.description:
         parts.append(config.description.strip())
@@ -89,16 +86,13 @@ async def process_chat(
 
     language = detect_language(query, history=request.conversation_history)
 
-    # Fetch the channel profile (off-thread — Qdrant call) so intent classification can
-    # distinguish adjacent-but-uncovered questions (CONTENT_GAP) from off-topic ones.
-    # Before any video is ingested, fall back to the influencer-provided seed.
-    profile = await asyncio.to_thread(get_profile_store().get_profile, request.chatbot_id)
-    if not profile:
-        profile = _seed_profile(request.config)
+    # The channel description (sent by Spring Boot in the request config) lets intent
+    # classification tell in-domain questions from off-topic ones.
+    description = _seed_description(request.config)
 
     # Classify intent, rewrite query, and (if first message) generate title concurrently
     tasks = [
-        get_intent_classifier().classify(query, profile=profile),
+        get_intent_classifier().classify(query, description=description),
         get_query_rewriter().rewrite(query, request.conversation_history, language=language),
     ]
     if request.first_message:
@@ -114,12 +108,14 @@ async def process_chat(
 
     # Short-circuit for non-content intents
     if intent != "CONTENT_QUESTION":
-        if intent == "CONTENT_GAP" and background_tasks is not None:
-            background_tasks.add_task(
-                report_content_gap, request.chatbot_id, query, language
-            )
         answer = get_hardcoded_response(intent, language, request.config.chatbot_name)
-        return ChatProcessResponse(answer=answer, session_title=session_title, sources=[])
+        return ChatProcessResponse(
+            answer=answer,
+            session_title=session_title,
+            sources=[],
+            intent=intent,
+            message_id=request.message_id,
+        )
 
     # Normalize Arabic query before embedding to match stored normalized chunks
     embed_query = normalize_arabic(final_query) if language == "ar" else final_query
@@ -145,16 +141,15 @@ async def process_chat(
     logger.info("step=retrieve_done chunks=%d retrieval_ms=%d", len(chunks), retrieval_ms)
 
     if not chunks:
-        # An in-domain question we have no content for is the strongest content-gap signal.
-        if background_tasks is not None:
-            background_tasks.add_task(
-                report_content_gap, request.chatbot_id, query, language
-            )
+        # An in-domain question we have no content for surfaces later as a content gap
+        # (a CONTENT_QUESTION whose answer cited no video).
         template = _FALLBACK_TEMPLATES.get(language, _FALLBACK_TEMPLATES["en"])
         return ChatProcessResponse(
             answer=template.format(chatbot_name=request.config.chatbot_name),
             session_title=session_title,
             sources=[],
+            intent=intent,
+            message_id=request.message_id,
         )
 
     messages = build_messages(final_query, chunks, request.conversation_history, request.config, language)
@@ -187,15 +182,10 @@ async def process_chat(
             )
         )
 
-    # Analytics: record each cited video (one event per unique source).
-    if background_tasks is not None:
-        for src in sources:
-            background_tasks.add_task(
-                report_video_cited,
-                request.chatbot_id,
-                src.video_id,
-                src.video_title,
-                query,
-            )
-
-    return ChatProcessResponse(answer=answer, session_title=session_title, sources=sources)
+    return ChatProcessResponse(
+        answer=answer,
+        session_title=session_title,
+        sources=sources,
+        intent=intent,
+        message_id=request.message_id,
+    )

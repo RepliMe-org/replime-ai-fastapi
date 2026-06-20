@@ -52,3 +52,5 @@ class ChatProcessResponse(BaseModel):
     answer: str
     session_title: str | None = None
     sources: list[Source]
+    intent: str
+    message_id: int | None = None
