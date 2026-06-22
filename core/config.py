@@ -8,6 +8,7 @@ _LLM_PROVIDER_BASE_URLS: dict[str, str] = {
     "groq": "https://api.groq.com/openai/v1",
     "cerebras": "https://api.cerebras.ai/v1",
     "gemini": "https://generativelanguage.googleapis.com/v1beta/openai/",
+    "nvidia": "https://integrate.api.nvidia.com/v1",
 }
 
 
@@ -41,6 +42,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     CEREBRAS_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
+    NVIDIA_API_KEY: str = ""
 
     # Per-task model selection — value format: "provider/model"
     CHAT_MODEL: str = "cerebras/gpt-oss-120b"           # main Q&A responses
@@ -83,6 +85,7 @@ class Settings(BaseSettings):
             "groq": self.GROQ_API_KEY,
             "cerebras": self.CEREBRAS_API_KEY,
             "gemini": self.GEMINI_API_KEY,
+            "nvidia": self.NVIDIA_API_KEY,
         }[provider]
         return base_url, api_key
     
