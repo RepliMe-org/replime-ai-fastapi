@@ -4,17 +4,12 @@ from difflib import get_close_matches
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from core.config import settings
+from rag import prompts
 from rag.llm_client import LLMClient
 from schemas.chat import MessageClass
 from services.http_client import get_http_client, is_retryable_http_error
 
 logger = logging.getLogger(__name__)
-
-_SYSTEM_PROMPT = (
-    "You are a message classifier. "
-    "Given a list of categories and a user message, return the name of the single best matching category. "
-    "Return only the category name exactly as written. No explanation."
-)
 
 
 _classification_client: LLMClient | None = None
@@ -30,7 +25,7 @@ def _get_classification_client() -> LLMClient:
 async def _call_classification_llm(query: str, class_names: list[str]) -> str:
     categories = ", ".join(class_names)
     messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "system", "content": prompts.CLASSIFICATION},
         {"role": "user", "content": f"Categories: {categories}\n\nMessage: {query}"},
     ]
     result, _ = await _get_classification_client().generate(messages, max_tokens=32, temperature=0.0)

@@ -3,6 +3,7 @@ import logging
 import re
 
 from core.config import settings
+from rag import prompts
 from rag.llm_client import LLMClient
 from schemas.analytics import (
     AnalyticsRequest,
@@ -15,28 +16,6 @@ logger = logging.getLogger(__name__)
 
 # Bound the prompt size — a representative sample is enough for theme clustering.
 _MAX_QUESTIONS = 300
-
-_ANALYTICS_SYSTEM_PROMPT = (
-    "You are a content analytics assistant for a creator's Q&A chatbot. "
-    "You receive a description of what the channel covers and the audience's questions. "
-    "Each question is tagged [answered] (the bot found content to cite) or [unanswered] "
-    "(the bot had no content for it). Analyze them and return insights as STRICT JSON only — "
-    "no prose, no code fences.\n\n"
-    "JSON schema:\n"
-    "{\n"
-    '  "mostAskedClusters": [{"theme": str, "count": int, "exampleQuestions": [str]}],\n'
-    '  "contentGaps": [{"topic": str, "frequency": int, "sampleQuestions": [str]}],\n'
-    '  "executiveSummary": str\n'
-    "}\n\n"
-    "Rules:\n"
-    "- mostAskedClusters: group ALL questions into themes; count = how many fall in each.\n"
-    "- contentGaps: group the [unanswered] questions and questions about topics the channel "
-    "description does NOT cover into topics the creator should add; frequency = how many fall in each.\n"
-    "- exampleQuestions/sampleQuestions: up to 3 verbatim from the input.\n"
-    "- executiveSummary: 2-4 sentences on what the audience asks about and where the content falls short.\n"
-    "- Write themes, topics, and summary in the dominant language of the input.\n"
-    "- Return at most 8 clusters and 8 gap topics, ordered by count/frequency descending."
-)
 
 
 def _parse_llm_json(raw: str) -> dict:
@@ -83,7 +62,7 @@ async def compute_analytics(req: AnalyticsRequest) -> AnalyticsResponse:
         f"AUDIENCE QUESTIONS ({len(questions)}):\n{question_lines}"
     )
     messages = [
-        {"role": "system", "content": _ANALYTICS_SYSTEM_PROMPT},
+        {"role": "system", "content": prompts.ANALYTICS},
         {"role": "user", "content": user_content},
     ]
 

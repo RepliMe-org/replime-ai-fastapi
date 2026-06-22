@@ -1,17 +1,10 @@
 import logging
 
 from core.config import settings
+from rag import prompts
 from rag.llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
-
-_SYSTEM_PROMPT = (
-    "You are a session title generator for a content Q&A chatbot. "
-    "Given a user's first question, write a short title of 4–7 words that captures the main topic. "
-    "Focus on the subject being asked about, not the question format. "
-    "Preserve the original language of the question. "
-    "Return only the title. No punctuation at the end, no quotes, no explanation."
-)
 
 
 class TitleGenerator:
@@ -20,7 +13,7 @@ class TitleGenerator:
 
     async def generate(self, query: str) -> str | None:
         messages = [
-            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "system", "content": prompts.TITLE},
             {"role": "user", "content": query},
         ]
         try:
