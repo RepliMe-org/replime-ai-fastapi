@@ -1,7 +1,7 @@
 import logging
 
 from core.config import settings
-from rag.llm_client import LLMClient, get_llm_client
+from rag.llm_client import LLMClient
 from schemas.chat import ConversationMessage
 
 logger = logging.getLogger(__name__)

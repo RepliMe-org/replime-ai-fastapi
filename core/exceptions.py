@@ -38,14 +38,8 @@ class LLMError(AppError):
     status_code = 503
 
 
-# Aliases for backwards compatibility with existing callers
-TranscriptNotFoundError = TranscriptError
-EmptyTranscriptError = TranscriptError
-ChunkingError = TranscriptError
+# EmbeddingError maps to LLMError, so embedding failures surface with code LLM_ERROR.
 EmbeddingError = LLMError
-VectorStoreConnectionError = VectorStoreError
-RetrievalError = VectorStoreError
-IngestionError = VectorStoreError
 
 
 class NonRetryableIngestionError(Exception):
