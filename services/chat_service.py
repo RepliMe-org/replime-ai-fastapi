@@ -128,7 +128,8 @@ async def process_chat(
 
     try:
         t0 = time.perf_counter()
-        chunks = get_vector_store().search(
+        chunks = await asyncio.to_thread(
+            get_vector_store().search,
             request.chatbot_id,
             embed_query,
             query_embedding,

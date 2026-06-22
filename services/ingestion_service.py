@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
@@ -105,7 +106,8 @@ async def run_ingestion_pipeline(
     # Stage 4 — vector indexing
     try:
         logger.info("stage=%s youtube_video_id=%s", _STAGE_INDEXING, youtube_video_id)
-        get_vector_store().upsert_chunks(
+        await asyncio.to_thread(
+            get_vector_store().upsert_chunks,
             chatbot_id,
             youtube_video_id,
             title,
