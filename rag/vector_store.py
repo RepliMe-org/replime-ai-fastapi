@@ -18,9 +18,6 @@ _SPARSE_NAME = "bm25"
 # Stable namespace so point ids are deterministic across re-ingestion (idempotent upserts).
 _ID_NAMESPACE = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 
-# How many candidates each branch contributes before RRF fusion narrows to top_k.
-_PREFETCH_LIMIT = 20
-
 
 def _point_id(chatbot_id: str, youtube_video_id: str, index: int) -> str:
     return str(uuid.uuid5(_ID_NAMESPACE, f"{chatbot_id}_{youtube_video_id}_{index}"))
@@ -157,7 +154,7 @@ class VectorStore:
                         using=_DENSE_NAME,
                         filter=chatbot_filter,
                         score_threshold=similarity_threshold,
-                        limit=_PREFETCH_LIMIT,
+                        limit=settings.RETRIEVAL_PREFETCH_LIMIT,
                     ),
                     models.Prefetch(
                         query=models.SparseVector(
@@ -166,7 +163,7 @@ class VectorStore:
                         ),
                         using=_SPARSE_NAME,
                         filter=chatbot_filter,
-                        limit=_PREFETCH_LIMIT,
+                        limit=settings.RETRIEVAL_PREFETCH_LIMIT,
                     ),
                 ],
                 query=models.FusionQuery(fusion=models.Fusion.RRF),

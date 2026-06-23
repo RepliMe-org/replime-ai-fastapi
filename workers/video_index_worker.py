@@ -10,8 +10,6 @@ from services.ingestion_service import run_ingestion_pipeline, send_ingestion_ca
 
 logger = logging.getLogger(__name__)
 
-_IDEMPOTENCY_TTL = 60 * 60 * 24 * 7  # 7 days
-
 
 class VideoIndexWorker:
     async def process(self, message: aio_pika.IncomingMessage) -> None:
@@ -70,7 +68,7 @@ class VideoIndexWorker:
                 # doesn't lead to duplicate reprocessing on the next message delivery.
                 if redis and redis_key:
                     try:
-                        await redis.set(redis_key, "1", ex=_IDEMPOTENCY_TTL)
+                        await redis.set(redis_key, "1", ex=settings.IDEMPOTENCY_TTL_SECONDS)
                     except Exception as exc:
                         logger.warning("Redis mark failed: %s", exc)
 

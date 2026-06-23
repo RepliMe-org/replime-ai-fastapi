@@ -14,9 +14,6 @@ from schemas.analytics import (
 
 logger = logging.getLogger(__name__)
 
-# Bound the prompt size — a representative sample is enough for theme clustering.
-_MAX_QUESTIONS = 300
-
 
 def _parse_llm_json(raw: str) -> dict:
     """Best-effort extraction of a JSON object from an LLM response."""
@@ -42,7 +39,7 @@ async def compute_analytics(req: AnalyticsRequest) -> AnalyticsResponse:
     if not req.questions:
         return AnalyticsResponse()
 
-    questions = req.questions[:_MAX_QUESTIONS]
+    questions = req.questions[:settings.ANALYTICS_MAX_QUESTIONS]
     question_lines = "\n".join(
         f"- [{'answered' if q.answered_with_sources else 'unanswered'}] {q.text}"
         for q in questions

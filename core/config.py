@@ -53,8 +53,14 @@ class Settings(BaseSettings):
     DESCRIPTION_MODEL: str = "groq/llama-3.1-8b-instant"  # channel description summarization
     ANALYTICS_MODEL: str = "cerebras/gpt-oss-120b"      # batch analytics clustering/summary
 
+    # Per-task tuning
+    DESCRIPTION_SAMPLE_CHAR_LIMIT: int = 4000   # max new-video text fed to the description updater
+    ANALYTICS_MAX_QUESTIONS: int = 300          # max questions sent to the analytics clusterer
+
+    # Retrieval
     TOP_K: int = 5
     SIMILARITY_THRESHOLD: float = 0.4
+    RETRIEVAL_PREFETCH_LIMIT: int = 20          # candidates per hybrid branch before RRF fusion
 
     # MMR (Maximal Marginal Relevance) — diversity-aware reranking of retrieved chunks
     USE_MMR: bool = True
@@ -69,6 +75,7 @@ class Settings(BaseSettings):
     # Redis (idempotency store)
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
+    IDEMPOTENCY_TTL_SECONDS: int = 60 * 60 * 24 * 7   # how long a processed idempotencyKey is remembered (7 days)
 
     # Maximum ingestion attempts before a retryable error becomes permanent
     MAX_RETRIES: int = 3
