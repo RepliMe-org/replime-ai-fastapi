@@ -1,8 +1,9 @@
 import logging
+from functools import lru_cache
 
 from core.config import settings
 from rag import prompts
-from rag.llm_client import LLMClient
+from rag.llm_client import LLMClient, get_client_for
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +29,6 @@ class DescriptionGenerator:
         return result.strip()
 
 
-_description_generator: DescriptionGenerator | None = None
-
-
+@lru_cache(maxsize=1)
 def get_description_generator() -> DescriptionGenerator:
-    global _description_generator
-    if _description_generator is None:
-        _description_generator = DescriptionGenerator(LLMClient(settings.DESCRIPTION_MODEL))
-    return _description_generator
+    return DescriptionGenerator(get_client_for(settings.DESCRIPTION_MODEL))

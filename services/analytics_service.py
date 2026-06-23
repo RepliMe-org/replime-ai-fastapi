@@ -4,7 +4,7 @@ import re
 
 from core.config import settings
 from rag import prompts
-from rag.llm_client import LLMClient
+from rag.llm_client import get_client_for
 from schemas.analytics import (
     AnalyticsRequest,
     AnalyticsResponse,
@@ -37,16 +37,6 @@ def _parse_llm_json(raw: str) -> dict:
     return {}
 
 
-_analytics_client: LLMClient | None = None
-
-
-def _get_analytics_client() -> LLMClient:
-    global _analytics_client
-    if _analytics_client is None:
-        _analytics_client = LLMClient(settings.ANALYTICS_MODEL)
-    return _analytics_client
-
-
 async def compute_analytics(req: AnalyticsRequest) -> AnalyticsResponse:
     # Nothing to cluster — return early without an LLM call.
     if not req.questions:
@@ -67,7 +57,7 @@ async def compute_analytics(req: AnalyticsRequest) -> AnalyticsResponse:
     ]
 
     try:
-        raw, _ = await _get_analytics_client().generate(
+        raw, _ = await get_client_for(settings.ANALYTICS_MODEL).generate(
             messages, max_tokens=1500, temperature=0.3
         )
         data = _parse_llm_json(raw)

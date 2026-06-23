@@ -5,21 +5,11 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 from core.config import settings
 from rag import prompts
-from rag.llm_client import LLMClient
+from rag.llm_client import get_client_for
 from schemas.chat import MessageClass
 from services.http_client import get_http_client, is_retryable_http_error
 
 logger = logging.getLogger(__name__)
-
-
-_classification_client: LLMClient | None = None
-
-
-def _get_classification_client() -> LLMClient:
-    global _classification_client
-    if _classification_client is None:
-        _classification_client = LLMClient(settings.CLASSIFICATION_MODEL)
-    return _classification_client
 
 
 async def _call_classification_llm(query: str, class_names: list[str]) -> str:
@@ -28,7 +18,7 @@ async def _call_classification_llm(query: str, class_names: list[str]) -> str:
         {"role": "system", "content": prompts.CLASSIFICATION},
         {"role": "user", "content": f"Categories: {categories}\n\nMessage: {query}"},
     ]
-    result, _ = await _get_classification_client().generate(messages, max_tokens=32, temperature=0.0)
+    result, _ = await get_client_for(settings.CLASSIFICATION_MODEL).generate(messages, max_tokens=32, temperature=0.0)
     return result.strip()
 
 

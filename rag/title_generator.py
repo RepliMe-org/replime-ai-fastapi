@@ -1,8 +1,9 @@
 import logging
+from functools import lru_cache
 
 from core.config import settings
 from rag import prompts
-from rag.llm_client import LLMClient
+from rag.llm_client import LLMClient, get_client_for
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +25,6 @@ class TitleGenerator:
             return None
 
 
-_title_generator: TitleGenerator | None = None
-
-
+@lru_cache(maxsize=1)
 def get_title_generator() -> TitleGenerator:
-    global _title_generator
-    if _title_generator is None:
-        _title_generator = TitleGenerator(LLMClient(settings.TITLE_MODEL))
-    return _title_generator
+    return TitleGenerator(get_client_for(settings.TITLE_MODEL))

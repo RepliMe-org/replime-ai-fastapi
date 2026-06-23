@@ -1,8 +1,9 @@
 import logging
+from functools import lru_cache
 
 from core.config import settings
 from rag import prompts
-from rag.llm_client import LLMClient
+from rag.llm_client import LLMClient, get_client_for
 from schemas.chat import ConversationMessage
 
 logger = logging.getLogger(__name__)
@@ -46,11 +47,6 @@ class QueryRewriter:
         return rewritten
 
 
-_query_rewriter: QueryRewriter | None = None
-
-
+@lru_cache(maxsize=1)
 def get_query_rewriter() -> QueryRewriter:
-    global _query_rewriter
-    if _query_rewriter is None:
-        _query_rewriter = QueryRewriter(llm_client=LLMClient(settings.REWRITE_MODEL))
-    return _query_rewriter
+    return QueryRewriter(llm_client=get_client_for(settings.REWRITE_MODEL))

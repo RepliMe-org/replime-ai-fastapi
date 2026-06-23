@@ -1,9 +1,10 @@
 import logging
 import re
+from functools import lru_cache
 
 from core.config import settings
 from rag import prompts
-from rag.llm_client import LLMClient
+from rag.llm_client import LLMClient, get_client_for
 
 logger = logging.getLogger(__name__)
 
@@ -81,11 +82,6 @@ def get_hardcoded_response(intent: str, language: str, chatbot_name: str) -> str
     return template.format(chatbot_name=chatbot_name)
 
 
-_intent_classifier: IntentClassifier | None = None
-
-
+@lru_cache(maxsize=1)
 def get_intent_classifier() -> IntentClassifier:
-    global _intent_classifier
-    if _intent_classifier is None:
-        _intent_classifier = IntentClassifier(LLMClient(settings.INTENT_MODEL))
-    return _intent_classifier
+    return IntentClassifier(get_client_for(settings.INTENT_MODEL))
