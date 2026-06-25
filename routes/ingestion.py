@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, status
 
 from core.dependencies import verify_internal_token
-from rag.vector_store import get_vector_store
+from rag.retrieval.vector_store import get_vector_store
 from schemas.ingestion import (
     DeleteVideoRequest,
     DeleteVideoResponse,

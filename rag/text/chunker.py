@@ -3,7 +3,7 @@ import bisect
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from core.exceptions import TranscriptError
-from rag.text_normalizer import normalize_arabic
+from rag.text.text_normalizer import normalize_arabic
 
 _DEFAULT_CHUNK_SIZE = 500
 _DEFAULT_CHUNK_OVERLAP = 100

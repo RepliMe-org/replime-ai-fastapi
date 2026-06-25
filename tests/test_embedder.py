@@ -1,7 +1,7 @@
 import pytest
 import pytest_asyncio
 
-from rag.embedder import Embedder
+from rag.retrieval.embedder import Embedder
 
 MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 EXPECTED_DIM = 384

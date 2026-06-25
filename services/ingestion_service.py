@@ -11,13 +11,13 @@ from core.exceptions import (
     TranscriptRateLimitError,
     VectorStoreError,
 )
-from rag.chunker import chunk_transcript
-from rag.embedder import get_embedder
-from rag.language_detector import detect_language
-from rag.description_generator import get_description_generator
-from rag.transcript_loader import load_transcript
-from rag.vector_store import get_vector_store
-from services.http_client import get_http_client, is_retryable_http_error
+from rag.text.chunker import chunk_transcript
+from rag.retrieval.embedder import get_embedder
+from rag.text.language_detector import detect_language
+from rag.llm.description_generator import get_description_generator
+from rag.text.transcript_loader import load_transcript
+from rag.retrieval.vector_store import get_vector_store
+from infrastructure.http_client import get_http_client, is_retryable_http_error
 
 logger = logging.getLogger(__name__)
 

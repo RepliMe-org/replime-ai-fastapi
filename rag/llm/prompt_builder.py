@@ -1,4 +1,4 @@
-from rag import prompts
+from rag.llm import prompts
 from schemas.chat import ChatbotConfig, ConversationMessage
 
 

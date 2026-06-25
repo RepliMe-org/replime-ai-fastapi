@@ -2,8 +2,8 @@ import logging
 from functools import lru_cache
 
 from core.config import settings
-from rag import prompts
-from rag.llm_client import LLMClient, get_client_for
+from rag.llm import prompts
+from rag.llm.llm_client import LLMClient, get_client_for
 from schemas.chat import ConversationMessage
 
 logger = logging.getLogger(__name__)

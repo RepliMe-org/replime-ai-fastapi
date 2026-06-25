@@ -9,10 +9,10 @@ from core.config import settings
 from core.exceptions import AppError
 from core.logging import setup_logging
 from infrastructure.redis_client import close_redis
-from rag.embedder import get_embedder
-from rag.vector_store import get_vector_store
+from rag.retrieval.embedder import get_embedder
+from rag.retrieval.vector_store import get_vector_store
 from routes import api_router
-from services.http_client import close_http_client
+from infrastructure.http_client import close_http_client
 from workers.dlq_handler import DLQHandler
 from workers.video_index_worker import VideoIndexWorker
 

@@ -3,8 +3,8 @@ import logging
 import re
 
 from core.config import settings
-from rag import prompts
-from rag.llm_client import get_client_for
+from rag.llm import prompts
+from rag.llm.llm_client import get_client_for
 from schemas.analytics import (
     AnalyticsRequest,
     AnalyticsResponse,

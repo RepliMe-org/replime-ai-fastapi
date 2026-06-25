@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends
 
 from core.dependencies import verify_internal_token
-from rag.vector_store import get_vector_store
+from rag.retrieval.vector_store import get_vector_store
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

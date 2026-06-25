@@ -6,7 +6,7 @@ from fastembed import SparseTextEmbedding
 
 from core.config import settings
 from core.exceptions import VectorStoreError
-from rag.mmr import mmr_select
+from rag.retrieval.mmr import mmr_select
 
 logger = logging.getLogger(__name__)
 

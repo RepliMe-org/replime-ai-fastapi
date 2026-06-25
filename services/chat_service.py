@@ -7,15 +7,15 @@ from fastapi import BackgroundTasks
 
 from core.config import settings
 from core.exceptions import EmbeddingError, LLMError, VectorStoreError
-from rag.embedder import get_embedder
-from rag.intent_classifier import get_hardcoded_response, get_intent_classifier
-from rag.language_detector import detect_language
-from rag.llm_client import get_llm_client
-from rag.prompt_builder import build_messages
-from rag.query_rewriter import get_query_rewriter
-from rag.text_normalizer import normalize_arabic
-from rag.title_generator import get_title_generator
-from rag.vector_store import get_vector_store
+from rag.retrieval.embedder import get_embedder
+from rag.llm.intent_classifier import get_hardcoded_response, get_intent_classifier
+from rag.text.language_detector import detect_language
+from rag.llm.llm_client import get_llm_client
+from rag.llm.prompt_builder import build_messages
+from rag.llm.query_rewriter import get_query_rewriter
+from rag.text.text_normalizer import normalize_arabic
+from rag.llm.title_generator import get_title_generator
+from rag.retrieval.vector_store import get_vector_store
 from schemas.chat import ChatProcessRequest, ChatProcessResponse, Source
 
 logger = logging.getLogger(__name__)
