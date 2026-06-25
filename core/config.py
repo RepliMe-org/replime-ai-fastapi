@@ -44,14 +44,16 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     NVIDIA_API_KEY: str = ""
 
-    # Per-task model selection — value format: "provider/model"
-    CHAT_MODEL: str = "cerebras/gpt-oss-120b"           # main Q&A responses
-    REWRITE_MODEL: str = "groq/llama-3.1-8b-instant"    # query rewriting (needs Arabic context)
-    INTENT_MODEL: str = "groq/llama-3.1-8b-instant"     # intent classification
-    TITLE_MODEL: str = "groq/llama-3.1-8b-instant"      # session title generation
-    CLASSIFICATION_MODEL: str = "groq/llama-3.1-8b-instant"  # message classification
-    DESCRIPTION_MODEL: str = "groq/llama-3.1-8b-instant"  # channel description summarization
-    ANALYTICS_MODEL: str = "cerebras/gpt-oss-120b"      # batch analytics clustering/summary
+    # Per-task model selection — value format: "provider/model".
+    # NVIDIA model ids contain their own "/", so nvidia specs are double-prefixed:
+    # "nvidia/<owner>/<model>" → provider=nvidia, model="<owner>/<model>".
+    CHAT_MODEL: str = "nvidia/qwen/qwen3-235b-a22b"     # main Q&A responses (Arabic+English, RAG)
+    REWRITE_MODEL: str = "groq/llama-3.3-70b-versatile"    # query rewriting (needs Arabic context)
+    INTENT_MODEL: str = "groq/llama-3.3-70b-versatile"     # intent classification
+    TITLE_MODEL: str = "groq/llama-3.3-70b-versatile"      # session title generation
+    CLASSIFICATION_MODEL: str = "groq/llama-3.3-70b-versatile"  # message classification
+    DESCRIPTION_MODEL: str = "groq/llama-3.3-70b-versatile"  # channel description summarization
+    ANALYTICS_MODEL: str = "nvidia/openai/gpt-oss-120b"  # batch analytics clustering/summary
 
     # Per-task tuning
     DESCRIPTION_SAMPLE_CHAR_LIMIT: int = 4000   # max new-video text fed to the description updater
