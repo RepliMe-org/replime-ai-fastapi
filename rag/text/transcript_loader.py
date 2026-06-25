@@ -6,7 +6,6 @@ import tempfile
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import IpBlocked, NoTranscriptFound, TranscriptsDisabled
 
-from core.config import settings
 from core.exceptions import TranscriptError, TranscriptRateLimitError
 
 logger = logging.getLogger(__name__)
@@ -30,9 +29,6 @@ def _load_via_ytdlp(youtube_video_id: str) -> list[dict]:
             "quiet": True,
             "no_warnings": True,
         }
-        cookies_file = settings.YTDLP_COOKIES_FILE
-        if cookies_file and os.path.isfile(cookies_file):
-            ydl_opts["cookiefile"] = cookies_file
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
