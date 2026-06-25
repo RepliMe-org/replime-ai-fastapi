@@ -81,6 +81,9 @@ class Settings(BaseSettings):
 
     # Maximum ingestion attempts before a retryable error becomes permanent
     MAX_RETRIES: int = 3
+
+    # Proxy for YouTube transcript fetching (e.g. "http://user:pass@host:port")
+    YOUTUBE_PROXY: Optional[str] = None
     
     def provider_credentials(self, provider: str) -> tuple[str, str]:
         """Resolve an LLM provider name to its (base_url, api_key)."""

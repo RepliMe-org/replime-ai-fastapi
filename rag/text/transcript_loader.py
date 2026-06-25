@@ -6,6 +6,7 @@ import tempfile
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import IpBlocked, NoTranscriptFound, TranscriptsDisabled
 
+from core.config import settings
 from core.exceptions import TranscriptError, TranscriptRateLimitError
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ def _load_via_ytdlp(youtube_video_id: str) -> list[dict]:
             "outtmpl": os.path.join(tmpdir, "%(id)s"),
             "quiet": True,
             "no_warnings": True,
+            **({"proxy": settings.YOUTUBE_PROXY} if settings.YOUTUBE_PROXY else {}),
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
@@ -52,7 +54,14 @@ def _load_via_ytdlp(youtube_video_id: str) -> list[dict]:
 
 
 def load_transcript(youtube_video_id: str) -> list[dict]:
-    api = YouTubeTranscriptApi()
+    proxy = settings.YOUTUBE_PROXY
+    if proxy:
+        import requests
+        session = requests.Session()
+        session.proxies = {"http": proxy, "https": proxy}
+        api = YouTubeTranscriptApi(http_client=session)
+    else:
+        api = YouTubeTranscriptApi()
     ip_blocked = False
 
     # Attempt 1: preferred language list
