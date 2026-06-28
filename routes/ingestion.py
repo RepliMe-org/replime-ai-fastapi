@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, status
 
 from core.dependencies import verify_internal_token
@@ -10,6 +12,7 @@ from schemas.ingestion import (
     ListVideosResponse,
     VideoSummary,
 )
+from services.description_service import refresh_channel_description
 from services.ingestion_service import run_ingestion
 
 router = APIRouter(dependencies=[Depends(verify_internal_token)])
@@ -39,10 +42,20 @@ async def index_videos(
 
 
 @router.delete("/delete/video", response_model=DeleteVideoResponse)
-def delete_video(
+async def delete_video(
+    background_tasks: BackgroundTasks,
     request: DeleteVideoRequest = Body(...),
 ) -> DeleteVideoResponse:
-    count = get_vector_store().delete_by_video_id(request.chatbot_id, request.youtube_video_id)
+    count = await asyncio.to_thread(
+        get_vector_store().delete_by_video_id,
+        request.chatbot_id,
+        request.youtube_video_id,
+    )
+    # Content changed — regenerate the channel description from what remains
+    # (best-effort, in the background; null when nothing remains). Skip when the
+    # delete was a no-op (video had no indexed chunks) to avoid a needless LLM call.
+    if count:
+        background_tasks.add_task(refresh_channel_description, request.chatbot_id)
     return DeleteVideoResponse(youtube_video_id=request.youtube_video_id, deleted_chunks=count)
 
 
