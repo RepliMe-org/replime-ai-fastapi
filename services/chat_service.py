@@ -90,21 +90,29 @@ async def process_chat(
     # classification tell in-domain questions from off-topic ones.
     description = _seed_description(request.config)
 
-    # Classify intent, rewrite query, and (if first message) generate title concurrently
-    tasks = [
-        get_intent_classifier().classify(query, description=description),
+    # Rewrite the query first (resolving context against history) so intent is
+    # classified on the standalone question — context-dependent follow-ups would
+    # otherwise misclassify as small-talk/out-of-scope. Title generation only runs
+    # on the first message, where rewrite is a no-op, so it overlaps the rewrite.
+    rewrite_tasks = [
         get_query_rewriter().rewrite(query, request.conversation_history, language=language),
     ]
     if request.first_message:
-        tasks.append(get_title_generator().generate(query))
+        rewrite_tasks.append(get_title_generator().generate(query))
 
-    results = await asyncio.gather(*tasks)
-    intent, final_query = results[0], results[1]
-    raw_title = results[2] if request.first_message else None
+    rewrite_results = await asyncio.gather(*rewrite_tasks)
+    final_query = rewrite_results[0]
+    raw_title = rewrite_results[1] if request.first_message else None
+    logger.info("step=rewrite_done query=%r", final_query)
+
+    # Classify intent on the rewritten query; the injection regex still runs on the
+    # raw query (passed as raw_query) to guarantee pre-LLM blocking.
+    intent = await get_intent_classifier().classify(
+        final_query, description=description, raw_query=query
+    )
     session_title = _resolve_session_title(intent, language, raw_title) if request.first_message else None
 
     logger.info("step=intent_done intent=%s", intent)
-    logger.info("step=rewrite_done query=%r", final_query)
 
     # Short-circuit for non-content intents
     if intent != "CONTENT_QUESTION":

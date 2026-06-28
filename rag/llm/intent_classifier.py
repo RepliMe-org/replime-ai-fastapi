@@ -47,10 +47,19 @@ class IntentClassifier:
     def __init__(self, llm_client: LLMClient) -> None:
         self._llm_client = llm_client
 
-    async def classify(self, query: str, description: str | None = None) -> str:
-        # Rule-based pre-filter — catches obvious injections before hitting the LLM
-        if _INJECTION_PATTERNS.search(query):
-            logger.warning("Injection pattern detected in query=%r", query[:80])
+    async def classify(
+        self,
+        query: str,
+        description: str | None = None,
+        raw_query: str | None = None,
+    ) -> str:
+        # Rule-based pre-filter — catches obvious injections before hitting the LLM.
+        # When `query` is a rewritten/standalone form, the regex must run on the
+        # original user text (`raw_query`); the rewriter can reword an injection
+        # past the regex, so checking the rewrite would lose the guaranteed block.
+        injection_target = raw_query if raw_query is not None else query
+        if _INJECTION_PATTERNS.search(injection_target):
+            logger.warning("Injection pattern detected in query=%r", injection_target[:80])
             return "HARMFUL"
 
         # With a channel description we use the domain-aware prompt; without one we
