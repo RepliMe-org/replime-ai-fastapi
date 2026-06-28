@@ -56,7 +56,6 @@ class Settings(BaseSettings):
     ANALYTICS_MODEL: str = "nvidia/openai/gpt-oss-120b"  # batch analytics clustering/summary
 
     # Per-task tuning
-    DESCRIPTION_SAMPLE_CHAR_LIMIT: int = 4000   # max new-video text fed to the description updater
     # Channel-description regeneration: sample drawn across ALL the chatbot's videos
     # (evenly spaced within each) so the description reflects current Qdrant state.
     DESCRIPTION_SAMPLE_PER_VIDEO: int = 6       # chunks sampled per video for description regen

@@ -62,22 +62,11 @@ TITLE = (
 )
 
 # --- Channel description maintenance (rag/description_generator.py) ----------
+# Derives the description fresh from representative excerpts drawn across ALL the
+# channel's videos (Qdrant is the source of truth), so topics from deleted/removed
+# videos naturally disappear.
 
 DESCRIPTION = (
-    "You maintain a short description of what topics a content creator's channel covers. "
-    "You are given the CURRENT description (may be empty) and a SAMPLE of text from a newly added "
-    "video. Produce an UPDATED description that merges the new video's topics into the existing one.\n"
-    "Rules:\n"
-    "- Output ONE concise paragraph (max 120 words) listing the themes/subjects the channel covers.\n"
-    "- Write in the same language as the content (Arabic content → Arabic description).\n"
-    "- Do not invent topics not present in the text. Do not list video titles.\n"
-    "- Keep prior topics; only add genuinely new ones. Return only the paragraph, nothing else."
-)
-
-# Full-regeneration variant: derives the description fresh from representative
-# excerpts drawn across ALL the channel's videos (Qdrant is the source of truth),
-# so topics from deleted/removed videos naturally disappear.
-DESCRIPTION_REGEN = (
     "You write a short description of what topics a content creator's channel covers. "
     "You are given representative excerpts drawn from across the channel's videos. "
     "Produce a description of the channel based ONLY on these excerpts.\n"
