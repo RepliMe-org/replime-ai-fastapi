@@ -25,6 +25,21 @@ class DescriptionGenerator:
         result, _ = await self._llm_client.generate(messages, max_tokens=256, temperature=0.3)
         return result.strip()
 
+    async def regenerate(self, sample_chunks: list[str]) -> str:
+        """Regenerate the channel description from a representative cross-video sample.
+
+        Unlike ``update_description``, this derives the description fresh from the
+        sample (Qdrant is the source of truth), so topics from deleted or removed
+        videos disappear instead of lingering in an incrementally-merged blob.
+        """
+        sample = "\n\n".join(sample_chunks)[:settings.DESCRIPTION_SAMPLE_MAX_CHARS]
+        messages = [
+            {"role": "system", "content": prompts.DESCRIPTION_REGEN},
+            {"role": "user", "content": f"CHANNEL EXCERPTS:\n{sample}"},
+        ]
+        result, _ = await self._llm_client.generate(messages, max_tokens=256, temperature=0.2)
+        return result.strip()
+
 
 @lru_cache(maxsize=1)
 def get_description_generator() -> DescriptionGenerator:
