@@ -30,7 +30,6 @@ async def index_videos(
             request.chatbot_id,
             video.youtube_video_id,
             video.video_title,
-            request.description,
         )
     return IndexVideosAcceptedResponse(
         status="ACCEPTED",
