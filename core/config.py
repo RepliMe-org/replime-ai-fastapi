@@ -57,6 +57,10 @@ class Settings(BaseSettings):
 
     # Per-task tuning
     DESCRIPTION_SAMPLE_CHAR_LIMIT: int = 4000   # max new-video text fed to the description updater
+    # Channel-description regeneration: sample drawn across ALL the chatbot's videos
+    # (evenly spaced within each) so the description reflects current Qdrant state.
+    DESCRIPTION_SAMPLE_PER_VIDEO: int = 6       # chunks sampled per video for description regen
+    DESCRIPTION_SAMPLE_MAX_CHARS: int = 8000    # max total sample chars fed to the regenerator
     ANALYTICS_MAX_QUESTIONS: int = 300          # max questions sent to the analytics clusterer
 
     # Retrieval

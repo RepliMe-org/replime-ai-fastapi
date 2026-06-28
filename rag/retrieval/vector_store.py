@@ -23,6 +23,21 @@ def _point_id(chatbot_id: str, youtube_video_id: str, index: int) -> str:
     return str(uuid.uuid5(_ID_NAMESPACE, f"{chatbot_id}_{youtube_video_id}_{index}"))
 
 
+def _evenly_spaced(items: list[str], k: int) -> list[str]:
+    """Pick up to ``k`` items spread evenly across the list (always includes the first).
+
+    Sampling across the whole video — rather than taking the first ``k`` chunks —
+    avoids biasing the description toward intros/sponsor reads.
+    """
+    n = len(items)
+    if k <= 0 or n == 0:
+        return []
+    if n <= k:
+        return list(items)
+    step = n / k
+    return [items[int(i * step)] for i in range(k)]
+
+
 class VectorStore:
     def __init__(self, url: str, api_key: str, collection: str) -> None:
         self._url = url
@@ -239,6 +254,89 @@ class VectorStore:
             return count
         except Exception as exc:
             raise VectorStoreError(f"delete_by_video_id failed: {exc}") from exc
+
+    def count_chunks(self, chatbot_id: str) -> int:
+        """Total indexed chunks for a chatbot. Cheap guard for 'any content left?'."""
+        try:
+            client = self._get_client()
+            chatbot_filter = models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="chatbot_id", match=models.MatchValue(value=chatbot_id)
+                    )
+                ]
+            )
+            return client.count(
+                collection_name=self._collection, count_filter=chatbot_filter
+            ).count
+        except Exception as exc:
+            raise VectorStoreError(f"count_chunks failed: {exc}") from exc
+
+    def sample_chunks(
+        self, chatbot_id: str, per_video: int, max_chars: int
+    ) -> list[str]:
+        """Return a representative, cross-video sample of a chatbot's chunk texts.
+
+        Scrolls all of the chatbot's points, groups them by video, and picks up to
+        ``per_video`` evenly-spaced chunks from each video. The per-video samples are
+        interleaved round-robin so the ``max_chars`` cap spreads breadth-first across
+        videos (rather than exhausting the budget on the first video). Used to
+        regenerate the channel description from current Qdrant state.
+        """
+        try:
+            client = self._get_client()
+            chatbot_filter = models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="chatbot_id", match=models.MatchValue(value=chatbot_id)
+                    )
+                ]
+            )
+            by_video: dict[str, list[str]] = {}
+            offset = None
+            while True:
+                points, offset = client.scroll(
+                    collection_name=self._collection,
+                    scroll_filter=chatbot_filter,
+                    with_payload=["youtube_video_id", "chunk_text"],
+                    with_vectors=False,
+                    limit=1000,
+                    offset=offset,
+                )
+                for point in points:
+                    payload = point.payload or {}
+                    text = payload.get("chunk_text")
+                    if not text:
+                        continue
+                    vid = payload.get("youtube_video_id", "unknown")
+                    by_video.setdefault(vid, []).append(text)
+                if offset is None:
+                    break
+
+            # Evenly-spaced pick per video, then interleave round-robin across videos.
+            per_video_samples = [
+                _evenly_spaced(texts, per_video) for texts in by_video.values()
+            ]
+            interleaved: list[str] = []
+            for i in range(per_video):
+                for vid_samples in per_video_samples:
+                    if i < len(vid_samples):
+                        interleaved.append(vid_samples[i])
+
+            # Cap total characters (truncating the final chunk if it would overflow).
+            out: list[str] = []
+            total = 0
+            for text in interleaved:
+                if total + len(text) > max_chars:
+                    remaining = max_chars - total
+                    if remaining > 0:
+                        out.append(text[:remaining])
+                    break
+                out.append(text)
+                total += len(text)
+            return out
+        except Exception as exc:
+            raise VectorStoreError(f"sample_chunks failed: {exc}") from exc
 
     def list_videos(self) -> dict[str, list[dict]]:
         try:
