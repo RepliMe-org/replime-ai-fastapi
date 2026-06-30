@@ -44,7 +44,7 @@ def _local_lock(chatbot_id: str) -> asyncio.Lock:
     reraise=True,
 )
 async def _do_description_callback(chatbot_id: str, payload: dict) -> None:
-    url = f"{settings.SPRING_BOOT_BASE_URL}/internal/chatbots/{chatbot_id}/description"
+    url = f"{settings.SPRING_BOOT_BASE_URL}/internal/chatbots/{chatbot_id}/ai-description"
     response = await get_http_client().patch(
         url,
         json=payload,
