@@ -20,6 +20,7 @@ from infrastructure.http_client import get_http_client, is_retryable_http_error
 from infrastructure.redis_client import get_redis
 from rag.llm.description_generator import get_description_generator
 from rag.retrieval.vector_store import get_vector_store
+from services.corpus_language_service import get_corpus_language
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,10 @@ async def _regenerate_and_report(chatbot_id: str) -> str | None:
         await send_description_callback(chatbot_id, None)
         return None
 
-    generated = await get_description_generator().regenerate(sample)
+    # Output language follows the chatbot's dominant corpus language (authoritative,
+    # from stored content_language) rather than langdetect on the excerpt sample.
+    language = await get_corpus_language(chatbot_id)
+    generated = await get_description_generator().regenerate(sample, language)
     description = generated or None
     logger.info(
         "description regenerated chatbot_id=%s length=%d", chatbot_id, len(description or "")

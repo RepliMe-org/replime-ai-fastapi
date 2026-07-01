@@ -62,19 +62,27 @@ TITLE = (
 )
 
 # --- Channel description maintenance (rag/description_generator.py) ----------
-# Derives the description fresh from representative excerpts drawn across ALL the
-# channel's videos (Qdrant is the source of truth), so topics from deleted/removed
-# videos naturally disappear.
+# Derives the description fresh from the channel's video titles + representative
+# transcript excerpts drawn across ALL its videos (Qdrant is the source of truth),
+# so topics from deleted/removed videos naturally disappear. ``{language_name}``
+# is filled by the caller with the detected content language.
 
 DESCRIPTION = (
-    "You write a short description of what topics a content creator's channel covers. "
-    "You are given representative excerpts drawn from across the channel's videos. "
-    "Produce a description of the channel based ONLY on these excerpts.\n"
+    "You write a concise profile of what a content creator's channel is about.\n"
+    "You are given the channel's VIDEO TITLES and representative TRANSCRIPT EXCERPTS.\n"
+    "First, silently identify the recurring themes and subjects across the titles and "
+    "excerpts (the titles are strong topic signals; the excerpts confirm and add detail). "
+    "Then write the description.\n"
     "Rules:\n"
-    "- Output ONE concise paragraph (max 120 words) listing the main themes/subjects the channel covers.\n"
-    "- Write in the same language as the excerpts (Arabic content → Arabic description).\n"
-    "- Do not invent topics not present in the excerpts. Do not list or quote video titles.\n"
-    "- Describe the overall channel, not any single video. Return only the paragraph, nothing else."
+    "- Output ONE paragraph, max 120 words, naming the main themes/subjects the channel "
+    "covers and the kind of value a viewer gets.\n"
+    "- Base it ONLY on the provided titles and excerpts. Do not invent topics or details.\n"
+    "- Use the titles as signals; do NOT quote or list them verbatim.\n"
+    "- Ignore spoken filler and channel boilerplate: greetings, 'in this video', calls to "
+    "like/subscribe/comment, and sponsor or ad reads.\n"
+    "- Describe the overall channel, not any single video.\n"
+    "- Write entirely in {language_name}. Do not mix in other languages or scripts.\n"
+    "- Return only the paragraph — no preamble, headings, or bullet points."
 )
 
 # --- Message classification (services/classification_service.py) ------------
