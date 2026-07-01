@@ -80,7 +80,10 @@ async def run_ingestion_pipeline(
     try:
         logger.info("stage=%s youtube_video_id=%s", _STAGE_TRANSCRIPT, youtube_video_id)
         segments = load_transcript(youtube_video_id)
-        language = detect_language(" ".join(seg["text"] for seg in segments[:20]))
+        # Detect over the full transcript, not just the opening segments — an
+        # intro in one language followed by a body in another would otherwise
+        # mis-tag the whole video's chunking/normalization.
+        language = detect_language(" ".join(seg["text"] for seg in segments))
         logger.info("language=%s youtube_video_id=%s", language, youtube_video_id)
     except TranscriptRateLimitError as exc:
         raise RetryableIngestionError(_STAGE_TRANSCRIPT, str(exc)) from exc

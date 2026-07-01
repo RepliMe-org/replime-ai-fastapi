@@ -8,9 +8,25 @@ DetectorFactory.seed = 0  # deterministic results across calls
 
 logger = logging.getLogger(__name__)
 
-_ARABIC_RE = re.compile(r"[؀-ۿ]")
+_ARABIC_CHAR_RE = re.compile(r"[؀-ۿ]")
+_LETTER_RE = re.compile(r"[^\W\d_]", re.UNICODE)
 _SUPPORTED = frozenset({"en", "ar"})
 _CONFIDENCE_THRESHOLD = 0.85
+_ARABIC_RATIO_THRESHOLD = 0.3  # share of Arabic letters among all letters to call text Arabic-dominant
+
+
+def _arabic_letter_ratio(text: str) -> float:
+    """Share of Arabic-script letters among all alphabetic characters.
+
+    Ratio-based rather than presence-based, so a code-switched query or a
+    transcript with a few Arabic names/loanwords doesn't flip the whole text
+    to Arabic — only text where Arabic is the dominant script does.
+    """
+    letters = _LETTER_RE.findall(text)
+    if not letters:
+        return 0.0
+    arabic_letters = _ARABIC_CHAR_RE.findall(text)
+    return len(arabic_letters) / len(letters)
 
 
 def detect_language(
@@ -22,8 +38,8 @@ def detect_language(
     if not text:
         return fallback
 
-    # Fast path: presence of Arabic Unicode block characters
-    if _ARABIC_RE.search(text):
+    # Fast path: Arabic is the dominant script
+    if _arabic_letter_ratio(text) >= _ARABIC_RATIO_THRESHOLD:
         return "ar"
 
     # langdetect with confidence threshold
@@ -42,7 +58,7 @@ def detect_language(
     if history:
         for msg in reversed(history):
             if getattr(msg, "role", None) == "USER" and msg.content.strip():
-                if _ARABIC_RE.search(msg.content):
+                if _arabic_letter_ratio(msg.content) >= _ARABIC_RATIO_THRESHOLD:
                     return "ar"
                 break
 
