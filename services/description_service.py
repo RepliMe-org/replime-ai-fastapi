@@ -82,10 +82,12 @@ async def _regenerate_and_report(chatbot_id: str) -> str | None:
         await send_description_callback(chatbot_id, None)
         return None
 
-    # Output language follows the chatbot's dominant corpus language (authoritative,
-    # from stored content_language) rather than langdetect on the excerpt sample.
+    # Output language *and* model both follow the chatbot's dominant corpus language
+    # (authoritative, from stored content_language) rather than langdetect on the
+    # excerpt sample.
     language = await get_corpus_language(chatbot_id)
-    generated = await get_description_generator().regenerate(sample, language)
+    model_spec = settings.model_for(settings.DESCRIPTION_MODEL, settings.DESCRIPTION_MODEL_AR, language)
+    generated = await get_description_generator(model_spec).regenerate(sample, language)
     description = generated or None
     logger.info(
         "description regenerated chatbot_id=%s length=%d", chatbot_id, len(description or "")

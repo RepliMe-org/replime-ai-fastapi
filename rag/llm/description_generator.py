@@ -50,6 +50,8 @@ class DescriptionGenerator:
         return result.strip()
 
 
-@lru_cache(maxsize=1)
-def get_description_generator() -> DescriptionGenerator:
-    return DescriptionGenerator(get_client_for(settings.DESCRIPTION_MODEL))
+@lru_cache(maxsize=None)
+def get_description_generator(model_spec: str = settings.DESCRIPTION_MODEL) -> DescriptionGenerator:
+    """Process-wide cached generator per model spec — mirrors get_client_for, so
+    the base and Arabic-override specs each get their own cached instance."""
+    return DescriptionGenerator(get_client_for(model_spec))

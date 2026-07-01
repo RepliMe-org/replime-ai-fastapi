@@ -11,6 +11,7 @@ from schemas.analytics import (
     ContentGapCluster,
     QuestionCluster,
 )
+from services.corpus_language_service import get_corpus_language
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,9 @@ async def compute_analytics(req: AnalyticsRequest) -> AnalyticsResponse:
     ]
 
     try:
-        raw, _ = await get_client_for(settings.ANALYTICS_MODEL).generate(
+        corpus_language = await get_corpus_language(req.chatbot_id)
+        model_spec = settings.model_for(settings.ANALYTICS_MODEL, settings.ANALYTICS_MODEL_AR, corpus_language)
+        raw, _ = await get_client_for(model_spec).generate(
             messages, max_tokens=1500, temperature=0.3
         )
         data = _parse_llm_json(raw)

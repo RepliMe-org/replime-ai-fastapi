@@ -60,6 +60,8 @@ class Settings(BaseSettings):
     # override, always use the base *_MODEL above — fully backward compatible.
     CHAT_MODEL_AR: str = ""
     REWRITE_MODEL_AR: str = ""
+    DESCRIPTION_MODEL_AR: str = ""
+    ANALYTICS_MODEL_AR: str = ""
 
     # Share of a chatbot's indexed chunks that must be Arabic for its corpus to
     # be considered Arabic-dominant (routes CHAT_MODEL_AR/REWRITE_MODEL_AR instead
