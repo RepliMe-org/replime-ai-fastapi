@@ -125,15 +125,17 @@ async def run_ingestion_pipeline(
     except Exception as exc:
         raise RetryableIngestionError(_STAGE_INDEXING, f"Unexpected indexing error: {exc}") from exc
 
+    # Corpus-language cache (best-effort) — used by chat_service to route the
+    # answer/rewrite model by the chatbot's indexed content (not the query), and by
+    # the description below for its output language. Refreshed BEFORE the description
+    # so the description sees the current dominant language.
+    await refresh_corpus_language(chatbot_id)
+
     # Channel description — regenerated from current Qdrant state (best-effort).
     # A failure here must NOT fail the ingestion: the video is already indexed and
     # searchable. refresh_channel_description serializes per chatbot, swallows its
     # own errors, and reports the result to Spring Boot on its own callback.
     await refresh_channel_description(chatbot_id)
-
-    # Corpus-language cache (best-effort) — used by chat_service to route the
-    # answer/rewrite model by the chatbot's indexed content, not the query.
-    await refresh_corpus_language(chatbot_id)
 
     logger.info("stage=done youtube_video_id=%s", youtube_video_id)
 

@@ -52,12 +52,13 @@ async def delete_video(
         request.chatbot_id,
         request.youtube_video_id,
     )
-    # Content changed — regenerate the channel description from what remains
-    # (best-effort, in the background; null when nothing remains). Skip when the
-    # delete was a no-op (video had no indexed chunks) to avoid a needless LLM call.
+    # Content changed — refresh the corpus language, then regenerate the channel
+    # description from what remains (best-effort, in the background; null when
+    # nothing remains). Corpus language runs first so the description picks up the
+    # refreshed language. Skip both when the delete was a no-op (no indexed chunks).
     if count:
-        background_tasks.add_task(refresh_channel_description, request.chatbot_id)
         background_tasks.add_task(refresh_corpus_language, request.chatbot_id)
+        background_tasks.add_task(refresh_channel_description, request.chatbot_id)
     return DeleteVideoResponse(youtube_video_id=request.youtube_video_id, deleted_chunks=count)
 
 
