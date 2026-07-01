@@ -63,6 +63,13 @@ class Settings(BaseSettings):
     DESCRIPTION_MODEL_AR: str = ""
     ANALYTICS_MODEL_AR: str = ""
 
+    # Global fallback chain — when a task's primary model errors (rate limit,
+    # provider outage, bad response), these "provider/model" specs are tried in
+    # order before the call is allowed to fail. Comma-separated; empty disables
+    # fallback. Prefer instruct models spanning providers so a single provider
+    # outage stays survivable (the client does not strip <think> from output).
+    LLM_FALLBACK_MODELS: str = ""
+
     # Share of a chatbot's indexed chunks that must be Arabic for its corpus to
     # be considered Arabic-dominant (routes CHAT_MODEL_AR/REWRITE_MODEL_AR instead
     # of the base model). Kept low/conservative: even a modest amount of Arabic
@@ -115,6 +122,10 @@ class Settings(BaseSettings):
             "nvidia": self.NVIDIA_API_KEY,
         }[provider]
         return base_url, api_key
+
+    def fallback_model_specs(self) -> list[str]:
+        """Parsed LLM_FALLBACK_MODELS — trimmed, order preserved, blanks dropped."""
+        return [s.strip() for s in self.LLM_FALLBACK_MODELS.split(",") if s.strip()]
 
     @staticmethod
     def model_for(base_spec: str, ar_override: str, corpus_language: str) -> str:

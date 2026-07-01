@@ -18,6 +18,11 @@ _RETRYABLE_EXCEPTIONS = (
     openai.InternalServerError,
 )
 
+# A model is abandoned for the next one in the chain on any of these — the
+# retryable errors (after per-model retries are exhausted) plus any LLMError
+# raised for a non-retryable provider error.
+_FALLBACK_TRIGGERS = _RETRYABLE_EXCEPTIONS + (LLMError,)
+
 
 def _parse_model_spec(model_spec: str) -> tuple[str, str]:
     """Split a "provider/model" spec into (provider, model)."""
@@ -25,6 +30,26 @@ def _parse_model_spec(model_spec: str) -> tuple[str, str]:
     if not provider or not model:
         raise LLMError(f"Invalid model spec {model_spec!r}; expected 'provider/model'")
     return provider, model
+
+
+@lru_cache(maxsize=None)
+def _provider_client(provider: str) -> OpenAI:
+    """One OpenAI client (and connection pool) per provider, shared across all
+    tasks and fallback chains. Pass a placeholder when the key is unset so
+    construction succeeds; the provider returns a clear auth error on first use."""
+    base_url, api_key = settings.provider_credentials(provider)
+    return OpenAI(base_url=base_url, api_key=api_key or "EMPTY")
+
+
+def _resolve_chain(primary_spec: str) -> list[str]:
+    """Primary spec followed by the configured global fallbacks, de-duplicated
+    with order preserved. Empty LLM_FALLBACK_MODELS ⇒ just the primary (so the
+    behaviour is identical to no fallback)."""
+    ordered: list[str] = [primary_spec]
+    for spec in settings.fallback_model_specs():
+        if spec and spec not in ordered:
+            ordered.append(spec)
+    return ordered
 
 
 @retry(
@@ -57,12 +82,16 @@ def _call_llm(
 
 
 class LLMClient:
+    """Calls a primary model, transparently falling back to the configured
+    fallback models (in order) when it errors. The model that actually produced
+    the response is logged; the caller only sees an error if every model fails."""
+
     def __init__(self, model_spec: str = settings.CHAT_MODEL) -> None:
-        self._provider, self._model = _parse_model_spec(model_spec)
-        base_url, api_key = settings.provider_credentials(self._provider)
-        # Pass a placeholder when the key is unset so construction succeeds;
-        # the provider returns a clear auth error on the first real call.
-        self._client = OpenAI(base_url=base_url, api_key=api_key or "EMPTY")
+        # Each entry is (provider, model, spec); parsing here surfaces an invalid
+        # primary spec at construction, as before.
+        self._chain = [
+            (*_parse_model_spec(spec), spec) for spec in _resolve_chain(model_spec)
+        ]
 
     async def generate(
         self,
@@ -70,24 +99,37 @@ class LLMClient:
         max_tokens: int = 1024,
         temperature: float = 0.7,
     ) -> tuple[str, int]:
-        try:
-            text, duration_ms = await asyncio.to_thread(
-                _call_llm, self._client, self._model, messages, max_tokens, temperature
+        last_error: Exception | None = None
+        for index, (provider, model, spec) in enumerate(self._chain):
+            try:
+                text, duration_ms = await asyncio.to_thread(
+                    _call_llm, _provider_client(provider), model, messages, max_tokens, temperature
+                )
+            except _FALLBACK_TRIGGERS as exc:
+                last_error = exc
+                next_spec = self._chain[index + 1][2] if index + 1 < len(self._chain) else None
+                if next_spec:
+                    logger.warning(
+                        "LLM model %s failed (%s); falling back to %s", spec, exc, next_spec
+                    )
+                else:
+                    logger.error("LLM model %s failed (%s); no fallback left", spec, exc)
+                continue
+            logger.info(
+                "LLM generate: model=%s (%s) max_tokens=%s duration_ms=%d",
+                spec,
+                "primary" if index == 0 else f"fallback #{index}",
+                max_tokens,
+                duration_ms,
             )
-        except _RETRYABLE_EXCEPTIONS as exc:
-            raise LLMError(str(exc)) from exc
-        logger.info(
-            "LLM generate: provider=%s model=%s tokens=%s duration_ms=%d",
-            self._provider,
-            self._model,
-            max_tokens,
-            duration_ms,
-        )
-        return text, duration_ms
+            return text, duration_ms
+        raise LLMError(
+            f"All models failed ({', '.join(spec for _, _, spec in self._chain)})"
+        ) from last_error
 
 
 @lru_cache(maxsize=None)
 def get_client_for(model_spec: str) -> LLMClient:
     """Process-wide cached client for a 'provider/model' spec; tasks on the
-    same model share one client (and its connection pool)."""
+    same model share one client (and its fallback chain)."""
     return LLMClient(model_spec)
