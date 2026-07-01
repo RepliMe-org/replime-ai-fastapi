@@ -10,13 +10,14 @@ from core.exceptions import EmbeddingError, LLMError, VectorStoreError
 from rag.retrieval.embedder import get_embedder
 from rag.llm.intent_classifier import get_hardcoded_response, get_intent_classifier
 from rag.text.language_detector import detect_language
-from rag.llm.llm_client import get_llm_client
+from rag.llm.llm_client import get_client_for
 from rag.llm.prompt_builder import build_messages
 from rag.llm.query_rewriter import get_query_rewriter
 from rag.text.text_normalizer import normalize_arabic
 from rag.llm.title_generator import get_title_generator
 from rag.retrieval.vector_store import get_vector_store
 from schemas.chat import ChatProcessRequest, ChatProcessResponse, Source
+from services.corpus_language_service import get_corpus_language
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,14 @@ async def process_chat(
 
     language = detect_language(query, history=request.conversation_history)
 
+    # Route the rewrite/answer models by the chatbot's indexed *corpus* language,
+    # not the query's — a query in one language can still retrieve chunks in
+    # another (see core/config.py Settings.model_for). Reply language/prompts
+    # still follow the query's own detected `language` above, unaffected.
+    corpus_language = await get_corpus_language(request.chatbot_id)
+    rewrite_spec = settings.model_for(settings.REWRITE_MODEL, settings.REWRITE_MODEL_AR, corpus_language)
+    chat_spec = settings.model_for(settings.CHAT_MODEL, settings.CHAT_MODEL_AR, corpus_language)
+
     # The channel description (sent by Spring Boot in the request config) lets intent
     # classification tell in-domain questions from off-topic ones.
     description = _seed_description(request.config)
@@ -95,7 +104,7 @@ async def process_chat(
     # otherwise misclassify as small-talk/out-of-scope. Title generation only runs
     # on the first message, where rewrite is a no-op, so it overlaps the rewrite.
     rewrite_tasks = [
-        get_query_rewriter().rewrite(query, request.conversation_history, language=language),
+        get_query_rewriter(rewrite_spec).rewrite(query, request.conversation_history, language=language),
     ]
     if request.first_message:
         rewrite_tasks.append(get_title_generator().generate(query))
@@ -164,7 +173,7 @@ async def process_chat(
     messages = build_messages(final_query, chunks, request.conversation_history, request.config, language)
 
     try:
-        answer, llm_ms = await get_llm_client().generate(messages)
+        answer, llm_ms = await get_client_for(chat_spec).generate(messages)
     except (LLMError, Exception) as exc:
         logger.error("LLM generation failed: %s", exc)
         raise LLMError("LLM generation failed") from exc

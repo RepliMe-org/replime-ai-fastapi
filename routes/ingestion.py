@@ -12,6 +12,7 @@ from schemas.ingestion import (
     ListVideosResponse,
     VideoSummary,
 )
+from services.corpus_language_service import refresh_corpus_language
 from services.description_service import refresh_channel_description
 from services.ingestion_service import run_ingestion
 
@@ -56,6 +57,7 @@ async def delete_video(
     # delete was a no-op (video had no indexed chunks) to avoid a needless LLM call.
     if count:
         background_tasks.add_task(refresh_channel_description, request.chatbot_id)
+        background_tasks.add_task(refresh_corpus_language, request.chatbot_id)
     return DeleteVideoResponse(youtube_video_id=request.youtube_video_id, deleted_chunks=count)
 
 

@@ -47,6 +47,8 @@ class QueryRewriter:
         return rewritten
 
 
-@lru_cache(maxsize=1)
-def get_query_rewriter() -> QueryRewriter:
-    return QueryRewriter(llm_client=get_client_for(settings.REWRITE_MODEL))
+@lru_cache(maxsize=None)
+def get_query_rewriter(model_spec: str = settings.REWRITE_MODEL) -> QueryRewriter:
+    """Process-wide cached rewriter per model spec — mirrors get_client_for, so
+    the base and Arabic-override specs each get their own cached instance."""
+    return QueryRewriter(llm_client=get_client_for(model_spec))

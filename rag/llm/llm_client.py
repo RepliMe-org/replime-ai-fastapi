@@ -91,7 +91,3 @@ def get_client_for(model_spec: str) -> LLMClient:
     """Process-wide cached client for a 'provider/model' spec; tasks on the
     same model share one client (and its connection pool)."""
     return LLMClient(model_spec)
-
-
-def get_llm_client() -> LLMClient:
-    return get_client_for(settings.CHAT_MODEL)

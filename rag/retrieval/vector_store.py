@@ -38,6 +38,34 @@ def _evenly_spaced(items: list[str], k: int) -> list[str]:
     return [items[int(i * step)] for i in range(k)]
 
 
+# Chunks shorter than this are dropped before sampling — they're usually
+# transcript fragments (timestamps, one-word lines) with no topical signal.
+_MIN_SAMPLE_CHUNK_CHARS = 80
+
+
+def _denoise_chunks(texts: list[str]) -> list[str]:
+    """Strip low-signal material before sampling for the description.
+
+    Drops very short fragments and exact duplicates, and (when there's enough
+    material to spare it) the final chunk — outros are almost always sign-off/CTA
+    boilerplate ('thanks for watching, like and subscribe').
+    """
+    seen: set[str] = set()
+    cleaned: list[str] = []
+    for text in texts:
+        stripped = text.strip()
+        if len(stripped) < _MIN_SAMPLE_CHUNK_CHARS:
+            continue
+        key = stripped.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(stripped)
+    if len(cleaned) >= 4:
+        cleaned = cleaned[:-1]
+    return cleaned
+
+
 class VectorStore:
     def __init__(self, url: str, api_key: str, collection: str) -> None:
         self._url = url
@@ -68,7 +96,7 @@ class VectorStore:
             logger.info("Created Qdrant collection '%s'", self._collection)
         # Create indexes unconditionally — Qdrant ignores duplicates, so this is
         # safe to call on an existing collection (e.g. after adding a new indexed field).
-        for field in ("chatbot_id", "youtube_video_id"):
+        for field in ("chatbot_id", "youtube_video_id", "content_language"):
             client.create_payload_index(
                 collection_name=self._collection,
                 field_name=field,
@@ -102,6 +130,7 @@ class VectorStore:
         chunks: list[str],
         embeddings: list[list[float]],
         timestamps: list[int | None],
+        content_language: str = "en",
     ) -> None:
         try:
             client = self._get_client()
@@ -128,6 +157,7 @@ class VectorStore:
                             if timestamps[i] is not None
                             else -1,
                             "chunk_text": chunk,
+                            "content_language": content_language,
                         },
                     )
                 )
@@ -272,16 +302,49 @@ class VectorStore:
         except Exception as exc:
             raise VectorStoreError(f"count_chunks failed: {exc}") from exc
 
+    def dominant_language(self, chatbot_id: str) -> str:
+        """The chatbot's dominant indexed-content language ("ar" or "en").
+
+        Two cheap indexed counts (Arabic chunks vs. total), not a full scroll.
+        Chunks indexed before ``content_language`` existed simply don't match the
+        Arabic filter, so they count toward the total but not the Arabic share —
+        legacy content is treated as non-Arabic until it's re-ingested.
+        """
+        try:
+            client = self._get_client()
+            total = self.count_chunks(chatbot_id)
+            if total == 0:
+                return "en"
+            arabic_filter = models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="chatbot_id", match=models.MatchValue(value=chatbot_id)
+                    ),
+                    models.FieldCondition(
+                        key="content_language", match=models.MatchValue(value="ar")
+                    ),
+                ]
+            )
+            arabic_count = client.count(
+                collection_name=self._collection, count_filter=arabic_filter
+            ).count
+            return "ar" if (arabic_count / total) >= settings.CORPUS_ARABIC_RATIO_THRESHOLD else "en"
+        except Exception as exc:
+            raise VectorStoreError(f"dominant_language failed: {exc}") from exc
+
     def sample_chunks(
         self, chatbot_id: str, per_video: int, max_chars: int
-    ) -> list[str]:
-        """Return a representative, cross-video sample of a chatbot's chunk texts.
+    ) -> list[dict]:
+        """Return a representative, per-video sample for description regeneration.
 
-        Scrolls all of the chatbot's points, groups them by video, and picks up to
-        ``per_video`` evenly-spaced chunks from each video. The per-video samples are
-        interleaved round-robin so the ``max_chars`` cap spreads breadth-first across
-        videos (rather than exhausting the budget on the first video). Used to
-        regenerate the channel description from current Qdrant state.
+        Each element is ``{"video_title": str, "excerpts": list[str]}`` — one per
+        video, in scroll order. Video titles are ALWAYS included (cheap topic
+        breadth across the whole channel, even when the excerpt budget is spent);
+        excerpts are denoised, evenly spaced within each video, and allocated
+        round-robin under ``max_chars`` so the budget spreads breadth-first rather
+        than being exhausted on the first few videos.
+
+        Returns an empty list only when the chatbot has no indexed content.
         """
         try:
             client = self._get_client()
@@ -292,13 +355,13 @@ class VectorStore:
                     )
                 ]
             )
-            by_video: dict[str, list[str]] = {}
+            videos: dict[str, dict] = {}  # video_id -> {"title": str, "texts": [str]}
             offset = None
             while True:
                 points, offset = client.scroll(
                     collection_name=self._collection,
                     scroll_filter=chatbot_filter,
-                    with_payload=["youtube_video_id", "chunk_text"],
+                    with_payload=["youtube_video_id", "video_title", "chunk_text"],
                     with_vectors=False,
                     limit=1000,
                     offset=offset,
@@ -309,32 +372,31 @@ class VectorStore:
                     if not text:
                         continue
                     vid = payload.get("youtube_video_id", "unknown")
-                    by_video.setdefault(vid, []).append(text)
+                    entry = videos.setdefault(
+                        vid, {"title": payload.get("video_title") or "", "texts": []}
+                    )
+                    entry["texts"].append(text)
                 if offset is None:
                     break
 
-            # Evenly-spaced pick per video, then interleave round-robin across videos.
-            per_video_samples = [
-                _evenly_spaced(texts, per_video) for texts in by_video.values()
+            # Denoise + evenly-spaced pick per video.
+            picked = [
+                {"title": v["title"], "picks": _evenly_spaced(_denoise_chunks(v["texts"]), per_video)}
+                for v in videos.values()
             ]
-            interleaved: list[str] = []
-            for i in range(per_video):
-                for vid_samples in per_video_samples:
-                    if i < len(vid_samples):
-                        interleaved.append(vid_samples[i])
 
-            # Cap total characters (truncating the final chunk if it would overflow).
-            out: list[str] = []
+            # Allocate excerpts round-robin under the char budget (breadth-first:
+            # every video's first pick lands before any video gets a second).
+            result: list[dict] = [{"video_title": v["title"], "excerpts": []} for v in picked]
             total = 0
-            for text in interleaved:
-                if total + len(text) > max_chars:
-                    remaining = max_chars - total
-                    if remaining > 0:
-                        out.append(text[:remaining])
-                    break
-                out.append(text)
-                total += len(text)
-            return out
+            for i in range(per_video):
+                for slot, v in zip(result, picked):
+                    if i < len(v["picks"]):
+                        text = v["picks"][i]
+                        if total + len(text) <= max_chars:
+                            slot["excerpts"].append(text)
+                            total += len(text)
+            return result
         except Exception as exc:
             raise VectorStoreError(f"sample_chunks failed: {exc}") from exc
 

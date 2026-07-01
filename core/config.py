@@ -55,11 +55,23 @@ class Settings(BaseSettings):
     DESCRIPTION_MODEL: str = "groq/llama-3.3-70b-versatile"  # channel description summarization
     ANALYTICS_MODEL: str = "nvidia/openai/gpt-oss-120b"  # batch analytics clustering/summary
 
+    # Optional per-task overrides used when a chatbot's indexed content is
+    # Arabic-dominant (see services/corpus_language_service.py). Empty = no
+    # override, always use the base *_MODEL above — fully backward compatible.
+    CHAT_MODEL_AR: str = ""
+    REWRITE_MODEL_AR: str = ""
+
+    # Share of a chatbot's indexed chunks that must be Arabic for its corpus to
+    # be considered Arabic-dominant (routes CHAT_MODEL_AR/REWRITE_MODEL_AR instead
+    # of the base model). Kept low/conservative: even a modest amount of Arabic
+    # content means a query in any language can retrieve Arabic chunks.
+    CORPUS_ARABIC_RATIO_THRESHOLD: float = 0.1
+
     # Per-task tuning
     # Channel-description regeneration: sample drawn across ALL the chatbot's videos
     # (evenly spaced within each) so the description reflects current Qdrant state.
     DESCRIPTION_SAMPLE_PER_VIDEO: int = 6       # chunks sampled per video for description regen
-    DESCRIPTION_SAMPLE_MAX_CHARS: int = 8000    # max total sample chars fed to the regenerator
+    DESCRIPTION_SAMPLE_MAX_CHARS: int = 12000   # max total excerpt chars fed to the regenerator
     DESCRIPTION_LOCK_TTL_SECONDS: int = 60      # per-chatbot lock TTL serializing description regen
     ANALYTICS_MAX_QUESTIONS: int = 300          # max questions sent to the analytics clusterer
 
@@ -101,7 +113,16 @@ class Settings(BaseSettings):
             "nvidia": self.NVIDIA_API_KEY,
         }[provider]
         return base_url, api_key
-    
+
+    @staticmethod
+    def model_for(base_spec: str, ar_override: str, corpus_language: str) -> str:
+        """Pick a task's model spec by the chatbot's indexed *corpus* language
+        (not the query's language — a query in one language can still retrieve
+        chunks in another). Falls back to ``base_spec`` when no override is set."""
+        if corpus_language == "ar" and ar_override:
+            return ar_override
+        return base_spec
+
 
     # Spring Boot backend
     SPRING_BOOT_BASE_URL: str = "http://localhost:8080/api/v1"

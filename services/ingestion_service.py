@@ -16,6 +16,7 @@ from rag.retrieval.embedder import get_embedder
 from rag.text.language_detector import detect_language
 from rag.text.transcript_loader import load_transcript
 from rag.retrieval.vector_store import get_vector_store
+from services.corpus_language_service import refresh_corpus_language
 from services.description_service import refresh_channel_description
 from infrastructure.http_client import get_http_client, is_retryable_http_error
 
@@ -117,6 +118,7 @@ async def run_ingestion_pipeline(
             [c["text"] for c in chunks],
             embeddings,
             [c.get("timestamp_seconds") for c in chunks],
+            language,
         )
     except VectorStoreError as exc:
         raise RetryableIngestionError(_STAGE_INDEXING, str(exc)) from exc
@@ -128,6 +130,10 @@ async def run_ingestion_pipeline(
     # searchable. refresh_channel_description serializes per chatbot, swallows its
     # own errors, and reports the result to Spring Boot on its own callback.
     await refresh_channel_description(chatbot_id)
+
+    # Corpus-language cache (best-effort) — used by chat_service to route the
+    # answer/rewrite model by the chatbot's indexed content, not the query.
+    await refresh_corpus_language(chatbot_id)
 
     logger.info("stage=done youtube_video_id=%s", youtube_video_id)
 
