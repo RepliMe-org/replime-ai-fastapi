@@ -55,7 +55,7 @@ def build_system_prompt(config: ChatbotConfig, language: str) -> str:
 
     persona = "\n".join(line for line in persona_lines if line)
 
-    verbosity_instruction = VERBOSITY_MAP.get(config.verbosity.upper(), "")
+    verbosity_instruction = VERBOSITY_MAP.get((config.verbosity or "").upper(), "")
 
     rules = prompts.ANSWER_RULES.format(language_name=_LANGUAGE_NAME.get(language, language))
 

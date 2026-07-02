@@ -3,6 +3,10 @@ import pytest_asyncio
 
 from rag.retrieval.embedder import Embedder
 
+# Integration test: downloads/loads a real sentence-transformers model, so it is
+# deselected by default (see pytest.ini). Run explicitly with: pytest -m integration
+pytestmark = pytest.mark.integration
+
 MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 EXPECTED_DIM = 384
 

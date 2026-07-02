@@ -1,0 +1,10 @@
+# Development-only dependencies: testing, coverage, and load/perf benchmarking.
+# Not required to run the service. Install with:
+#   pip install -r requirements-dev.txt
+
+pytest==9.0.3
+pytest-asyncio==1.3.0
+pytest-cov==7.1.0
+
+# End-to-end load / performance testing (see load_tests/locustfile.py)
+locust>=2.20,<3
