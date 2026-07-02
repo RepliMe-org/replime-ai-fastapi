@@ -1,7 +1,6 @@
 # Testing & Evaluation
 
-This document describes how the Replime AI FastAPI service is tested and how its
-performance is evaluated.
+This document describes how the Replime AI FastAPI service is tested.
 
 ## Philosophy
 
@@ -18,7 +17,7 @@ marked `@pytest.mark.integration` and **deselected by default** (see
 ## Running the tests
 
 ```bash
-# install dev tooling (pytest, pytest-asyncio, pytest-cov, locust)
+# install dev tooling (pytest, pytest-asyncio, pytest-cov)
 pip install -r requirements-dev.txt
 
 # default suite (mocked; fast, deterministic)
@@ -81,66 +80,17 @@ that omitted verbosity would raise `AttributeError` and 500. Fixed to
 `(config.verbosity or "").upper()` and covered by
 `test_prompt_builder.test_verbosity_none_does_not_crash`.
 
-## Performance evaluation
-
-### Component micro-benchmarks (local, CPU-bound)
-
-Measured with `benchmarks/component_benchmarks.py` (no network, model, or LLM —
-reproducible and free to run). Numbers below were measured locally on Python
-3.11; they vary with hardware.
-
-```bash
-python benchmarks/component_benchmarks.py
-```
-
-| Component | Mean | p95 | Throughput |
-|---|---|---|---|
-| `language_detect` (English, langdetect) | 3.12 ms | 4.01 ms | ~320 ops/s |
-| `language_detect` (Arabic fast-path) | 0.020 ms | 0.025 ms | ~49,500 ops/s |
-| `normalize_arabic` | 0.011 ms | 0.012 ms | ~89,000 ops/s |
-| `chunk_transcript` (60 segments) | 0.63 ms | 0.72 ms | ~1,580 ops/s |
-| `mmr_select` (20 → 5, dim 1024) | 0.70 ms | 0.87 ms | ~1,420 ops/s |
-| `extract_citations` | 0.012 ms | 0.012 ms | ~84,000 ops/s |
-| `build_messages` (5 chunks) | 0.016 ms | 0.016 ms | ~64,000 ops/s |
-
-**Takeaway:** the CPU-bound glue is negligible (sub-millisecond) except English
-`langdetect` (~3 ms) — ~150× slower than the Arabic ratio fast-path. End-to-end
-chat latency is therefore dominated by the embedding lookup, the Qdrant hybrid
-query, and above all the LLM generation call — none of which are CPU-bound here.
-
-### End-to-end load testing (Locust)
-
-End-to-end latency (embedding + Qdrant retrieval + LLM generation) can only be
-measured against a running server with real Qdrant and LLM credentials, so it is
-run manually. Harness: `load_tests/locustfile.py`.
-
-```bash
-# 1. Start the server in one terminal (needs a real .env: Qdrant + LLM keys + X_INTERNAL_TOKEN)
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
-
-# 2. In a second terminal, find a chatbot_id that has indexed content.
-#    `tr -d '\r'` matters on WSL/Linux if .env has Windows (CRLF) line endings —
-#    otherwise a trailing \r rides along on the token and corrupts every header,
-#    making requests fail instantly with "Invalid HTTP request received".
-export X_INTERNAL_TOKEN=$(grep -E '^X_INTERNAL_TOKEN=' .env | cut -d= -f2- | tr -d '\r')
-curl -s -H "X-Internal-Token: $X_INTERNAL_TOKEN" http://localhost:8000/ai/videos | python -m json.tool
-export REPLIME_CHATBOT_ID="<one whose videos have chunk_count > 0>"
-
-# 3. Run Locust (the token is auto-read from .env; locust is in requirements-dev.txt)
-locust -f load_tests/locustfile.py --host http://localhost:8000 \
-       --users 20 --spawn-rate 5 --run-time 60s --headless
-```
-
-The harness weights requests 6:2:1 across `POST /ai/chat/process`,
-`POST /ai/analytics/process`, and `GET /ai/health`, mixing English and Arabic
-queries. Record the per-endpoint median / average / p95 latency, RPS, and failure
-rate from the Locust summary.
-
 ## Limitations
 
+- **Load / performance testing is not done at the AI layer.** End-to-end load
+  testing of the chat and analytics endpoints depends on external LLM providers
+  reached through **free-tier endpoints**, whose strict rate limits and high,
+  variable latency make concurrent-load figures unrepresentative of this
+  service's own behaviour. Load and throughput testing is therefore performed at
+  the backend layer, which owns the request-rate concerns; the AI layer is
+  validated for functional correctness through the tests above.
 - **Mocked externals.** The default suite trades full end-to-end validation for
   speed and determinism — a deliberate, standard trade-off.
-- **LLM-dominated latency.** Chat response time is bounded by the external LLM
-  provider, not by this service's own code.
-- **Load ceiling.** Concurrency in load testing is limited by the LLM provider's
-  rate limits and by running the server + Locust on one machine.
+- **Integration tests are opt-in.** Tests that load the real embedding model are
+  deselected by default to keep the suite fast and offline; they are run
+  explicitly when validating the model boundary.
