@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 # In-process fallback locks, used only when Redis is unavailable. One per chatbot.
 _local_locks: dict[str, asyncio.Lock] = {}
 
+# Strong refs to detached regen tasks so the event loop doesn't GC them mid-flight.
+_background_refreshes: set[asyncio.Task] = set()
+
 
 def _local_lock(chatbot_id: str) -> asyncio.Lock:
     lock = _local_locks.get(chatbot_id)
@@ -34,6 +37,37 @@ def _local_lock(chatbot_id: str) -> asyncio.Lock:
         lock = asyncio.Lock()
         _local_locks[chatbot_id] = lock
     return lock
+
+
+async def _keep_lock_alive(redis_lock, chatbot_id: str) -> None:
+    """Re-extend a held Redis lock on a heartbeat so a slow-but-live regeneration
+    keeps its lease. The description LLM call can run for minutes (NVIDIA batch),
+    far longer than DESCRIPTION_LOCK_TTL_SECONDS; without this the lease would
+    expire mid-flight and a concurrent regen could grab the "free" lock. Runs until
+    cancelled — if the process dies the lease still expires, letting another worker
+    recover.
+    """
+    interval = max(1, settings.DESCRIPTION_LOCK_TTL_SECONDS // 3)
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            await redis_lock.reacquire()
+        except Exception as exc:
+            logger.warning("description lock re-extend failed chatbot_id=%s: %s", chatbot_id, exc)
+            return
+
+
+def spawn_channel_description_refresh(chatbot_id: str) -> None:
+    """Fire-and-forget channel-description regeneration.
+
+    Lets the ingestion pipeline report a video COMPLETED as soon as its chunks are
+    indexed, instead of blocking the webhook behind the slow, best-effort
+    description LLM call. Serialized per chatbot by refresh_channel_description's
+    own lock; it reports its own result to Spring Boot.
+    """
+    task = asyncio.create_task(refresh_channel_description(chatbot_id))
+    _background_refreshes.add(task)
+    task.add_done_callback(_background_refreshes.discard)
 
 
 # ── Spring Boot callback ───────────────────────────────────────────────────────
@@ -110,7 +144,7 @@ async def refresh_channel_description(chatbot_id: str) -> str | None:
         redis_lock = redis.lock(
             f"desc-lock:{chatbot_id}",
             timeout=settings.DESCRIPTION_LOCK_TTL_SECONDS,
-            blocking_timeout=settings.DESCRIPTION_LOCK_TTL_SECONDS,
+            blocking_timeout=settings.DESCRIPTION_LOCK_WAIT_SECONDS,
         )
         if not await redis_lock.acquire():
             logger.warning("description lock timeout chatbot_id=%s — skipping refresh", chatbot_id)
@@ -123,12 +157,18 @@ async def refresh_channel_description(chatbot_id: str) -> str | None:
         local = _local_lock(chatbot_id)
         await local.acquire()
 
+    # Heartbeat the Redis lease so the lock survives a slow regen (see _keep_lock_alive).
+    watchdog = asyncio.create_task(_keep_lock_alive(redis_lock, chatbot_id)) if redis_lock else None
     try:
         return await _regenerate_and_report(chatbot_id)
     except Exception as exc:
         logger.warning("description refresh failed chatbot_id=%s: %s", chatbot_id, exc)
         return None
     finally:
+        if watchdog is not None:
+            watchdog.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await watchdog
         if redis_lock is not None:
             with contextlib.suppress(Exception):
                 await redis_lock.release()

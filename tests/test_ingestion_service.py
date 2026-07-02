@@ -30,7 +30,7 @@ def pipeline_deps(monkeypatch):
     vs.upsert_chunks = MagicMock()
     monkeypatch.setattr(ing, "get_vector_store", lambda: vs)
     monkeypatch.setattr(ing, "refresh_corpus_language", AsyncMock())
-    monkeypatch.setattr(ing, "refresh_channel_description", AsyncMock())
+    monkeypatch.setattr(ing, "spawn_channel_description_refresh", MagicMock())
     return SimpleNamespace(vs=vs, embedder=embedder)
 
 

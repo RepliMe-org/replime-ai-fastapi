@@ -81,7 +81,8 @@ class Settings(BaseSettings):
     # (evenly spaced within each) so the description reflects current Qdrant state.
     DESCRIPTION_SAMPLE_PER_VIDEO: int = 6       # chunks sampled per video for description regen
     DESCRIPTION_SAMPLE_MAX_CHARS: int = 12000   # max total excerpt chars fed to the regenerator
-    DESCRIPTION_LOCK_TTL_SECONDS: int = 60      # per-chatbot lock TTL serializing description regen
+    DESCRIPTION_LOCK_TTL_SECONDS: int = 60      # per-chatbot lock lease; auto-extended while a regen runs
+    DESCRIPTION_LOCK_WAIT_SECONDS: int = 300    # how long a queued regen waits to acquire the lock before skipping
     ANALYTICS_MAX_QUESTIONS: int = 300          # max questions sent to the analytics clusterer
 
     # Retrieval

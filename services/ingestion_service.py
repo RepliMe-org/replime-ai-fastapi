@@ -17,7 +17,7 @@ from rag.text.language_detector import detect_language
 from rag.text.transcript_loader import load_transcript
 from rag.retrieval.vector_store import get_vector_store
 from services.corpus_language_service import refresh_corpus_language
-from services.description_service import refresh_channel_description
+from services.description_service import spawn_channel_description_refresh
 from infrastructure.http_client import get_http_client, is_retryable_http_error
 
 logger = logging.getLogger(__name__)
@@ -71,8 +71,9 @@ async def run_ingestion_pipeline(
     private video) and RetryableIngestionError for transient ones. The caller
     is responsible for sending the webhook callback.
 
-    After indexing, triggers a best-effort channel-description regeneration;
-    description_service serializes per chatbot and reports the result to Spring
+    After indexing, spawns a detached best-effort channel-description regeneration
+    (so the caller's COMPLETED webhook isn't blocked behind the slow LLM call);
+    description_service serializes it per chatbot and reports the result to Spring
     Boot on its own dedicated callback.
     """
     title = video_title or youtube_video_id
@@ -132,10 +133,12 @@ async def run_ingestion_pipeline(
     await refresh_corpus_language(chatbot_id)
 
     # Channel description — regenerated from current Qdrant state (best-effort).
-    # A failure here must NOT fail the ingestion: the video is already indexed and
-    # searchable. refresh_channel_description serializes per chatbot, swallows its
-    # own errors, and reports the result to Spring Boot on its own callback.
-    await refresh_channel_description(chatbot_id)
+    # Detached (fire-and-forget) so the video's COMPLETED webhook fires as soon as
+    # the chunks are indexed, instead of blocking behind the slow description LLM
+    # call. A failure there must NOT fail the ingestion: the video is already
+    # indexed and searchable. It serializes per chatbot, swallows its own errors,
+    # and reports the result to Spring Boot on its own callback.
+    spawn_channel_description_refresh(chatbot_id)
 
     logger.info("stage=done youtube_video_id=%s", youtube_video_id)
 
