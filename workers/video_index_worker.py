@@ -84,7 +84,7 @@ class VideoIndexWorker:
                 await send_ingestion_callback(yt_video_id, {
                     "status": "FAILED",
                     "failedStage": exc.stage,
-                    "failureReason": exc.reason,
+                    "failureReason": exc.user_message,
                     "attemptsMade": attempt,
                     "retryable": False,
                 })
@@ -98,7 +98,7 @@ class VideoIndexWorker:
                 await send_ingestion_callback(yt_video_id, {
                     "status": "FAILED",
                     "failedStage": exc.stage,
-                    "failureReason": exc.reason,
+                    "failureReason": exc.user_message,
                     "attemptsMade": attempt,
                     "retryable": retryable,
                 })

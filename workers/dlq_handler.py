@@ -43,8 +43,8 @@ class DLQHandler:
                 await send_ingestion_callback(yt_video_id, {
                     "status": "DEAD",
                     "failureReason": (
-                        f"Processing permanently failed ({death_reason}) "
-                        f"after {attempt} attempt(s)"
+                        "We couldn't process this video after several attempts. "
+                        "Please try again later."
                     ),
                     "attemptsMade": attempt,
                     "retryable": False,

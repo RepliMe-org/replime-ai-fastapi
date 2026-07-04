@@ -5,6 +5,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 from core.config import settings
 from core.exceptions import (
+    DEFAULT_INGESTION_USER_MESSAGE,
     NonRetryableIngestionError,
     RetryableIngestionError,
     TranscriptError,
@@ -88,9 +89,15 @@ async def run_ingestion_pipeline(
         language = detect_language(" ".join(seg["text"] for seg in segments))
         logger.info("language=%s youtube_video_id=%s", language, youtube_video_id)
     except TranscriptRateLimitError as exc:
-        raise RetryableIngestionError(_STAGE_TRANSCRIPT, str(exc)) from exc
+        raise RetryableIngestionError(
+            _STAGE_TRANSCRIPT, str(exc),
+            user_message="YouTube is temporarily rate-limiting our requests. We'll retry automatically.",
+        ) from exc
     except TranscriptError as exc:
-        raise NonRetryableIngestionError(_STAGE_TRANSCRIPT, str(exc)) from exc
+        raise NonRetryableIngestionError(
+            _STAGE_TRANSCRIPT, str(exc),
+            user_message="This video doesn't have a transcript available, or it may be private or restricted.",
+        ) from exc
     except Exception as exc:
         raise RetryableIngestionError(_STAGE_TRANSCRIPT, f"Unexpected error: {exc}") from exc
 
@@ -168,7 +175,7 @@ async def run_ingestion(
         await send_ingestion_callback(youtube_video_id, {
             "status": "FAILED",
             "failedStage": exc.stage,
-            "failureReason": exc.reason,
+            "failureReason": exc.user_message,
             "attemptsMade": 1,
             "retryable": False,
         })
@@ -180,7 +187,7 @@ async def run_ingestion(
         await send_ingestion_callback(youtube_video_id, {
             "status": "FAILED",
             "failedStage": exc.stage,
-            "failureReason": exc.reason,
+            "failureReason": exc.user_message,
             "attemptsMade": 1,
             "retryable": True,
         })
@@ -188,7 +195,7 @@ async def run_ingestion(
         logger.exception("ingestion failed unexpectedly youtube_video_id=%s", youtube_video_id)
         await send_ingestion_callback(youtube_video_id, {
             "status": "FAILED",
-            "failureReason": str(exc),
+            "failureReason": DEFAULT_INGESTION_USER_MESSAGE,
             "attemptsMade": 1,
             "retryable": True,
         })

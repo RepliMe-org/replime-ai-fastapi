@@ -42,17 +42,31 @@ class LLMError(AppError):
 EmbeddingError = LLMError
 
 
+# Fallback, per-stage messages shown to end users when a raise site doesn't
+# supply a more specific `user_message`. Keep these free of internal exception
+# text — `reason` (technical) stays in logs/exceptions only.
+_STAGE_USER_MESSAGES = {
+    "TRANSCRIPT_EXTRACTION": "We couldn't retrieve a transcript for this video.",
+    "CHUNKING": "Something went wrong while processing this video's transcript.",
+    "EMBEDDING_GENERATION": "Something went wrong while analyzing this video's content.",
+    "VECTOR_INDEXING": "Something went wrong while saving this video's content.",
+}
+DEFAULT_INGESTION_USER_MESSAGE = "Something went wrong while processing this video. Please try again later."
+
+
 class NonRetryableIngestionError(Exception):
     """Ingestion stage failed permanently — retrying will never help."""
-    def __init__(self, stage: str, reason: str):
+    def __init__(self, stage: str, reason: str, user_message: str | None = None):
         self.stage = stage
         self.reason = reason
+        self.user_message = user_message or _STAGE_USER_MESSAGES.get(stage, DEFAULT_INGESTION_USER_MESSAGE)
         super().__init__(f"[{stage}] {reason}")
 
 
 class RetryableIngestionError(Exception):
     """Ingestion stage failed transiently — retrying may succeed."""
-    def __init__(self, stage: str, reason: str):
+    def __init__(self, stage: str, reason: str, user_message: str | None = None):
         self.stage = stage
         self.reason = reason
+        self.user_message = user_message or _STAGE_USER_MESSAGES.get(stage, DEFAULT_INGESTION_USER_MESSAGE)
         super().__init__(f"[{stage}] {reason}")
